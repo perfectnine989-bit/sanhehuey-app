@@ -160,7 +160,7 @@ class MainActivity : AppCompatActivity() {
             return
         }
         lifecycleScope.launch {
-            b.btnConnect.text = "ПОДКЛЮЧАЕМ…"
+            b.btnLabel.text = "ПОДКЛЮЧАЕМ…"
             val t = Store.token(this@MainActivity)
             val c = withContext(Dispatchers.IO) {
                 runCatching { Api.config(t) }.getOrNull()
@@ -179,7 +179,7 @@ class MainActivity : AppCompatActivity() {
     private fun startTunnel() {
         val cfg = pendingConfig ?: return
         lifecycleScope.launch {
-            b.btnConnect.text = "ПОДКЛЮЧАЕМ…"
+            b.btnLabel.text = "ПОДКЛЮЧАЕМ…"
             val res = withContext(Dispatchers.IO) {
                 runCatching { Vpn.connect(this@MainActivity, cfg) }
             }
