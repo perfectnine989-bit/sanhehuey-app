@@ -29,12 +29,7 @@ object Vpn {
         return backend!!
     }
 
-    fun isUp(ctx: Context): Boolean =
-        try {
-            backend(ctx).getState(tunnel) == Tunnel.State.UP
-        } catch (e: Exception) {
-            false
-        }
+    fun isUp(ctx: Context): Boolean = tunnel.state == Tunnel.State.UP
 
     fun connect(ctx: Context, configText: String) {
         val cfg = Config.parse(
