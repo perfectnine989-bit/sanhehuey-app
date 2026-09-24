@@ -36,8 +36,19 @@ object Api {
 
     fun authStart(): JSONObject = post("/api/app/auth/start")
 
-    fun authStatus(code: String): JSONObject =
-        get("/api/app/auth/status/$code")
+    fun authStatus(code: String, device: String): JSONObject =
+        get("/api/app/auth/status/$code?device=$device")
+
+    fun logout(token: String): JSONObject {
+        val body = ("{\"token\":\"" + token + "\"}")
+            .toRequestBody("application/json".toMediaType())
+        val req = Request.Builder()
+            .url(BASE + "/api/app/logout").post(body).build()
+        http.newCall(req).execute().use { r ->
+            val t = r.body?.string().orEmpty()
+            return if (t.isBlank()) JSONObject() else JSONObject(t)
+        }
+    }
 
     fun state(token: String): JSONObject =
         get("/api/app/state?token=$token")

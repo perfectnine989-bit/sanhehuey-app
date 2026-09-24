@@ -40,11 +40,7 @@ class MainActivity : AppCompatActivity() {
                     Uri.parse("https://t.me/S1llonGOD")))
             }
         }
-        b.btnLogout.setOnClickListener {
-            Store.clear(this)
-            openMenu(false)
-            showLogin()
-        }
+        b.btnLogout.setOnClickListener { doLogout() }
         b.verText.text = "Версия " + packageManager
             .getPackageInfo(packageName, 0).versionName
 
@@ -78,7 +74,7 @@ class MainActivity : AppCompatActivity() {
         repeat(60) {
             delay(2000)
             val st = withContext(Dispatchers.IO) {
-                runCatching { Api.authStatus(code) }.getOrNull()
+                runCatching { Api.authStatus(code, Store.deviceId(this@MainActivity)) }.getOrNull()
             } ?: return@repeat
 
             when (st.optString("status")) {
@@ -300,6 +296,23 @@ class MainActivity : AppCompatActivity() {
         } else {
             err(r.optString("message").ifBlank { "Не удалось продлить" })
         }
+    }
+
+    private fun doLogout() = lifecycleScope.launch {
+        val t = Store.token(this@MainActivity)
+        if (Vpn.isUp(this@MainActivity)) {
+            withContext(Dispatchers.IO) {
+                runCatching { Vpn.disconnect(this@MainActivity) }
+            }
+        }
+        withContext(Dispatchers.IO) { runCatching { Api.logout(t) } }
+        Store.clearToken(this@MainActivity)
+        state = null
+        openMenu(false)
+        section(0)
+        showLogin()
+        Toast.makeText(this@MainActivity,
+            "Вы вышли, слот устройства освобождён", Toast.LENGTH_LONG).show()
     }
 
     private fun dp(v: Int): Int =
