@@ -22,7 +22,7 @@ jobs:
       - name: Build debug APK
         run: |
           chmod +x ./gradlew || true
-          gradle wrapper --gradle-version 8.7 || true
+          gradle wrapper --gradle-version 8.11.1 || true
           ./gradlew assembleDebug --stacktrace
 
       - uses: actions/upload-artifact@v4
