@@ -3,6 +3,7 @@ package online.sanhehuey.app
 import android.content.Context
 import org.amnezia.awg.backend.GoBackend
 import org.amnezia.awg.backend.Tunnel
+import org.amnezia.awg.backend.TunnelActionHandler
 import org.amnezia.awg.config.Config
 import java.io.ByteArrayInputStream
 
@@ -20,16 +21,31 @@ class AppTunnel(private val tunnelName: String) : Tunnel {
     override fun isMetered(): Boolean = false
 }
 
+/** Скрипты до/после подключения нам не нужны — пустая реализация. */
+class NoopActions : TunnelActionHandler {
+    override fun runPreUp(scripts: MutableCollection<String>) {}
+    override fun runPostUp(scripts: MutableCollection<String>) {}
+    override fun runPreDown(scripts: MutableCollection<String>) {}
+    override fun runPostDown(scripts: MutableCollection<String>) {}
+}
+
 object Vpn {
     private var backend: GoBackend? = null
     private val tunnel = AppTunnel("sanhehuey")
 
     private fun backend(ctx: Context): GoBackend {
-        if (backend == null) backend = GoBackend(ctx.applicationContext)
+        if (backend == null) {
+            backend = GoBackend(ctx.applicationContext, NoopActions())
+        }
         return backend!!
     }
 
-    fun isUp(ctx: Context): Boolean = tunnel.state == Tunnel.State.UP
+    fun isUp(ctx: Context): Boolean =
+        try {
+            backend(ctx).getState(tunnel) == Tunnel.State.UP
+        } catch (e: Exception) {
+            tunnel.state == Tunnel.State.UP
+        }
 
     fun connect(ctx: Context, configText: String) {
         val cfg = Config.parse(
