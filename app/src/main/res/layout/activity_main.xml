@@ -4,6 +4,17 @@
     android:layout_height="match_parent"
     android:background="@color/bg">
 
+    <ImageView
+        android:id="@+id/dragonBg"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_gravity="center"
+        android:adjustViewBounds="true"
+        android:scaleType="fitCenter"
+        android:src="@drawable/dragon_cn"
+        android:alpha="0.16"
+        android:contentDescription="@null"/>
+
     <!-- ЭКРАН ВХОДА -->
     <LinearLayout
         android:id="@+id/loginBox"
@@ -11,51 +22,59 @@
         android:layout_height="match_parent"
         android:orientation="vertical"
         android:gravity="center"
-        android:padding="32dp"
+        android:padding="30dp"
         android:visibility="gone">
 
-        <ImageView
-            android:id="@+id/loginDragon"
-            android:layout_width="110dp"
-            android:layout_height="110dp"
-            android:src="@mipmap/ic_launcher"/>
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="三合會"
+            android:textColor="@color/gold_dim"
+            android:textSize="25sp"
+            android:letterSpacing="0.42"/>
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:fontFamily="@font/playfair"
             android:text="@string/app_name"
             android:textColor="@color/text"
-            android:textSize="24sp"
+            android:textSize="40sp"
             android:textStyle="bold"
-            android:layout_marginTop="22dp"/>
+            android:layout_marginTop="20dp"/>
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:fontFamily="@font/oswald"
             android:text="V P N"
-            android:textColor="@color/muted"
+            android:textColor="@color/gold_dim"
             android:textSize="11sp"
-            android:letterSpacing="0.4"
-            android:layout_marginTop="8dp"/>
-
-        <Button
-            android:id="@+id/btnLogin"
-            android:layout_width="match_parent"
-            android:layout_height="54dp"
-            android:text="ВОЙТИ ЧЕРЕЗ TELEGRAM"
-            android:textColor="#17110A"
-            android:textStyle="bold"
-            android:backgroundTint="@color/gold"
-            android:layout_marginTop="44dp"/>
+            android:letterSpacing="0.5"
+            android:layout_marginTop="16dp"/>
 
         <TextView
             android:id="@+id/loginHint"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:fontFamily="@font/oswald"
             android:gravity="center"
             android:textColor="@color/muted"
-            android:textSize="12sp"
-            android:layout_marginTop="18dp"/>
+            android:textSize="13sp"
+            android:lineSpacingExtra="6dp"
+            android:layout_marginTop="40dp"/>
+
+        <Button
+            android:id="@+id/btnLogin"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:fontFamily="@font/oswald"
+            android:text="ВОЙТИ ЧЕРЕЗ TELEGRAM"
+            android:textColor="#14110A"
+            android:textSize="13sp"
+            android:letterSpacing="0.2"
+            android:backgroundTint="@color/gold"
+            android:layout_marginTop="44dp"/>
     </LinearLayout>
 
     <!-- ГЛАВНЫЙ ЭКРАН -->
@@ -65,45 +84,107 @@
         android:layout_height="match_parent"
         android:orientation="vertical"
         android:gravity="center_horizontal"
-        android:padding="26dp"
+        android:paddingStart="26dp"
+        android:paddingEnd="26dp"
+        android:paddingTop="56dp"
+        android:paddingBottom="34dp"
         android:visibility="gone">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="三合會"
+            android:textColor="@color/gold_dim"
+            android:textSize="21sp"
+            android:letterSpacing="0.4"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/playfair"
+            android:text="@string/app_name"
+            android:textColor="@color/text"
+            android:textSize="26sp"
+            android:textStyle="bold"
+            android:layout_marginTop="12dp"/>
+
+        <View
+            android:layout_width="46dp"
+            android:layout_height="1dp"
+            android:background="@color/gold"
+            android:alpha="0.55"
+            android:layout_marginTop="14dp"/>
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1">
+
+            <FrameLayout
+                android:id="@+id/btnConnect"
+                android:layout_width="224dp"
+                android:layout_height="224dp"
+                android:layout_gravity="center"
+                android:background="@drawable/ring_off"
+                android:clickable="true"
+                android:focusable="true">
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:orientation="vertical"
+                    android:gravity="center">
+
+                    <TextView
+                        android:id="@+id/glyph"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/playfair"
+                        android:text="龙"
+                        android:textSize="78sp"
+                        android:textColor="@color/gold_dim"/>
+
+                    <TextView
+                        android:id="@+id/btnLabel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/oswald"
+                        android:text="ПОДКЛЮЧИТЬ"
+                        android:textSize="11sp"
+                        android:letterSpacing="0.3"
+                        android:textColor="@color/gold"
+                        android:layout_marginTop="8dp"/>
+                </LinearLayout>
+            </FrameLayout>
+        </FrameLayout>
 
         <TextView
             android:id="@+id/statusText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="ОТКЛЮЧЕНО"
-            android:textColor="@color/muted"
-            android:textSize="12sp"
-            android:letterSpacing="0.16"
-            android:layout_marginTop="40dp"/>
-
-        <ImageView
-            android:id="@+id/dragon"
-            android:layout_width="180dp"
-            android:layout_height="180dp"
-            android:src="@mipmap/ic_launcher"
-            android:layout_marginTop="26dp"/>
-
-        <Button
-            android:id="@+id/btnConnect"
-            android:layout_width="match_parent"
-            android:layout_height="60dp"
-            android:text="ПОДКЛЮЧИТЬ"
-            android:textColor="#17110A"
-            android:textStyle="bold"
-            android:textSize="15sp"
-            android:backgroundTint="@color/jade"
-            android:layout_marginTop="36dp"/>
+            android:fontFamily="@font/oswald"
+            android:text="ТРИАДА СПИТ"
+            android:textSize="14sp"
+            android:letterSpacing="0.26"
+            android:textColor="@color/gold_dim"/>
 
         <TextView
-            android:id="@+id/infoText"
+            android:id="@+id/statusSub"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/oswald"
+            android:textSize="11sp"
+            android:textColor="@color/muted"
+            android:layout_marginTop="10dp"/>
+
+        <LinearLayout
+            android:id="@+id/infoCard"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center"
-            android:textColor="@color/muted"
-            android:textSize="13sp"
-            android:lineSpacingExtra="4dp"
+            android:orientation="vertical"
+            android:background="@drawable/card_border"
+            android:padding="18dp"
             android:layout_marginTop="28dp"/>
     </LinearLayout>
 </FrameLayout>

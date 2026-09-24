@@ -28,6 +28,7 @@ class MainActivity : AppCompatActivity() {
         b.btnLogin.setOnClickListener { doLogin() }
         b.btnConnect.setOnClickListener { toggle() }
 
+        b.loginHint.text = "Вход по аккаунту.\nКлючи подтянутся сами — ничего импортировать не нужно."
         if (Store.token(this).isBlank()) showLogin() else loadState()
     }
 
@@ -92,25 +93,61 @@ class MainActivity : AppCompatActivity() {
     private fun render() {
         val s = state ?: return
         val up = Vpn.isUp(this)
-        b.statusText.text = if (up) "ЗАЩИЩЕНО" else "ОТКЛЮЧЕНО"
-        b.statusText.setTextColor(
-            getColor(if (up) R.color.jade else R.color.muted)
-        )
-        b.btnConnect.text = if (up) "ОТКЛЮЧИТЬ" else "ПОДКЛЮЧИТЬ"
-        b.btnConnect.backgroundTintList =
-            getColorStateList(if (up) R.color.red else R.color.jade)
 
+        b.statusText.text = if (up) "ПОД ЗАЩИТОЙ ТРИАДЫ" else "ТРИАДА СПИТ"
+        b.statusText.setTextColor(getColor(if (up) R.color.jade else R.color.gold_dim))
+        b.statusSub.text = if (up) "Соединение устойчиво" else "Соединение не установлено"
+
+        b.btnConnect.setBackgroundResource(if (up) R.drawable.ring_on else R.drawable.ring_off)
+        b.glyph.setTextColor(getColor(if (up) R.color.jade else R.color.gold_dim))
+        b.btnLabel.text = if (up) "ОТКЛЮЧИТЬ" else "ПОДКЛЮЧИТЬ"
+        b.btnLabel.setTextColor(getColor(if (up) R.color.jade else R.color.gold))
+        b.dragonBg.alpha = if (up) 0.16f else 0.10f
+
+        b.infoCard.removeAllViews()
         val days = s.optInt("days_left", 0)
-        val tier = s.optJSONObject("loyalty")?.optString("tier") ?: ""
-        b.infoText.text = buildString {
-            append(s.optString("client_name")).append("\n")
-            append("Подписка до ").append(s.optString("expires_at"))
-            if (days > 0) append(" · ").append(days).append(" дн.")
-            if (tier.isNotBlank()) append("\nСтатус: ").append(tier)
-            append("\nУстройство ").append(s.optInt("slot"))
-                .append(" из ").append(s.optInt("slots_total"))
-        }
+        val exp = s.optString("expires_at")
+        val access = if (days > 3000 || exp.startsWith("01.01.2099"))
+            "Бессрочный" else exp
+        row("АККАУНТ", s.optString("client_name"), true)
+        row("ДОСТУП", access, false)
+        row("УСТРОЙСТВО", s.optInt("slot").toString() + " из " + s.optInt("slots_total"), false)
     }
+
+    private fun row(label: String, value: String, first: Boolean) {
+        if (!first) {
+            val sep = android.view.View(this)
+            sep.layoutParams = android.widget.LinearLayout.LayoutParams(
+                android.widget.LinearLayout.LayoutParams.MATCH_PARENT, dp(1)
+            ).also { it.topMargin = dp(11); it.bottomMargin = dp(11) }
+            sep.setBackgroundColor(0x24C9A15A)
+            b.infoCard.addView(sep)
+        }
+        val line = android.widget.LinearLayout(this)
+        line.orientation = android.widget.LinearLayout.HORIZONTAL
+
+        val l = android.widget.TextView(this)
+        l.text = label
+        l.textSize = 10f
+        l.letterSpacing = 0.22f
+        l.setTextColor(getColor(R.color.muted))
+        l.typeface = androidx.core.content.res.ResourcesCompat.getFont(this, R.font.oswald)
+        l.layoutParams = android.widget.LinearLayout.LayoutParams(0,
+            android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+
+        val v = android.widget.TextView(this)
+        v.text = value
+        v.textSize = 13f
+        v.setTextColor(getColor(R.color.gold))
+        v.typeface = androidx.core.content.res.ResourcesCompat.getFont(this, R.font.oswald)
+
+        line.addView(l)
+        line.addView(v)
+        b.infoCard.addView(line)
+    }
+
+    private fun dp(v: Int): Int =
+        (v * resources.displayMetrics.density).toInt()
 
     private fun toggle() {
         if (Vpn.isUp(this)) {
