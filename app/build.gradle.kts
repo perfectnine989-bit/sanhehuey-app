@@ -30,7 +30,7 @@ android {
 }
 
 dependencies {
-    implementation("org.amnezia.awg:tunnel:1.0.20230706")
+    implementation("com.zaneschepke:amneziawg-android:2.3.7")
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("com.google.android.material:material:1.12.0")

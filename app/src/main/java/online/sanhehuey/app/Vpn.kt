@@ -1,8 +1,8 @@
 package online.sanhehuey.app
 
 import android.content.Context
-import org.amnezia.awg.android.backend.GoBackend
-import org.amnezia.awg.android.backend.Tunnel
+import org.amnezia.awg.backend.GoBackend
+import org.amnezia.awg.backend.Tunnel
 import org.amnezia.awg.config.Config
 import java.io.ByteArrayInputStream
 
