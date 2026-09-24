@@ -27,6 +27,8 @@ class MainActivity : AppCompatActivity() {
 
         b.btnLogin.setOnClickListener { doLogin() }
         b.btnConnect.setOnClickListener { toggle() }
+        b.btnTopup.setOnClickListener { openWeb("topup_url") }
+        b.btnRenew.setOnClickListener { openWeb("renew_url") }
 
         b.loginHint.text = "Вход по аккаунту.\nКлючи подтянутся сами — ничего импортировать не нужно."
         if (Store.token(this).isBlank()) showLogin() else loadState()
@@ -104,6 +106,14 @@ class MainActivity : AppCompatActivity() {
         b.btnLabel.setTextColor(getColor(if (up) R.color.jade else R.color.gold))
         b.dragonBg.alpha = if (up) 0.16f else 0.10f
 
+        val loc = s.optString("location")
+        b.locText.text = if (loc.isBlank()) "" else loc
+        b.locText.visibility =
+            if (up && loc.isNotBlank()) android.view.View.VISIBLE
+            else android.view.View.INVISIBLE
+
+        breathe(up)
+
         b.infoCard.removeAllViews()
         val days = s.optInt("days_left", 0)
         val exp = s.optString("expires_at")
@@ -144,6 +154,42 @@ class MainActivity : AppCompatActivity() {
         line.addView(l)
         line.addView(v)
         b.infoCard.addView(line)
+    }
+
+    private var breathAnim: android.animation.AnimatorSet? = null
+
+    private fun breathe(on: Boolean) {
+        breathAnim?.cancel()
+        breathAnim = null
+        if (!on) {
+            b.btnConnect.scaleX = 1f
+            b.btnConnect.scaleY = 1f
+            b.dragonBg.alpha = 0.10f
+            return
+        }
+        val sx = android.animation.ObjectAnimator.ofFloat(
+            b.btnConnect, "scaleX", 1f, 1.035f, 1f)
+        val sy = android.animation.ObjectAnimator.ofFloat(
+            b.btnConnect, "scaleY", 1f, 1.035f, 1f)
+        val al = android.animation.ObjectAnimator.ofFloat(
+            b.dragonBg, "alpha", 0.13f, 0.21f, 0.13f)
+        listOf(sx, sy, al).forEach {
+            it.duration = 3400
+            it.repeatCount = android.animation.ValueAnimator.INFINITE
+            it.interpolator = android.view.animation.AccelerateDecelerateInterpolator()
+        }
+        breathAnim = android.animation.AnimatorSet().apply {
+            playTogether(sx, sy, al)
+            start()
+        }
+    }
+
+    private fun openWeb(key: String) {
+        val url = state?.optString(key) ?: ""
+        val target = if (url.isBlank()) "https://sanhehuey.online" else url
+        runCatching {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(target)))
+        }.onFailure { err("Не удалось открыть страницу") }
     }
 
     private fun dp(v: Int): Int =
@@ -202,6 +248,11 @@ class MainActivity : AppCompatActivity() {
     private fun err(msg: String) {
         Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
         b.loginHint.text = msg
+    }
+
+    override fun onPause() {
+        super.onPause()
+        breathAnim?.cancel()
     }
 
     override fun onResume() {
