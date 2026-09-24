@@ -114,8 +114,12 @@ class MainActivity : AppCompatActivity() {
 
     private fun toggle() {
         if (Vpn.isUp(this)) {
-            runCatching { Vpn.disconnect(this) }
-            render()
+            lifecycleScope.launch {
+                withContext(Dispatchers.IO) {
+                    runCatching { Vpn.disconnect(this@MainActivity) }
+                }
+                render()
+            }
             return
         }
         lifecycleScope.launch {
@@ -137,15 +141,20 @@ class MainActivity : AppCompatActivity() {
 
     private fun startTunnel() {
         val cfg = pendingConfig ?: return
-        runCatching { Vpn.connect(this, cfg) }
-            .onFailure {
+        lifecycleScope.launch {
+            b.btnConnect.text = "ПОДКЛЮЧАЕМ…"
+            val res = withContext(Dispatchers.IO) {
+                runCatching { Vpn.connect(this@MainActivity, cfg) }
+            }
+            res.onFailure {
                 android.util.Log.e("SanHeHuey", "connect failed", it)
                 err(
                     "Ошибка: " + (it::class.java.simpleName) +
                     " — " + (it.message ?: it.cause?.message ?: "нет деталей")
                 )
             }
-        render()
+            render()
+        }
     }
 
     override fun onActivityResult(rq: Int, rs: Int, data: Intent?) {
