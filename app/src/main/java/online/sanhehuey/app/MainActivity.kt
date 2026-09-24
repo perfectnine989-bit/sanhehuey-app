@@ -109,8 +109,9 @@ class MainActivity : AppCompatActivity() {
         val loc = s.optString("location")
         b.locText.text = if (loc.isBlank()) "" else loc
         b.locText.visibility =
-            if (up && loc.isNotBlank()) android.view.View.VISIBLE
+            if (loc.isNotBlank()) android.view.View.VISIBLE
             else android.view.View.INVISIBLE
+        b.locText.setTextColor(getColor(if (up) R.color.gold else R.color.muted))
 
         breathe(up)
 
