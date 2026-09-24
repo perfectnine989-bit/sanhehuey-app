@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg">
+
+    <!-- ЭКРАН ВХОДА -->
+    <LinearLayout
+        android:id="@+id/loginBox"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="32dp"
+        android:visibility="gone">
+
+        <ImageView
+            android:id="@+id/loginDragon"
+            android:layout_width="110dp"
+            android:layout_height="110dp"
+            android:src="@mipmap/ic_launcher"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/app_name"
+            android:textColor="@color/text"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:layout_marginTop="22dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="V P N"
+            android:textColor="@color/muted"
+            android:textSize="11sp"
+            android:letterSpacing="0.4"
+            android:layout_marginTop="8dp"/>
+
+        <Button
+            android:id="@+id/btnLogin"
+            android:layout_width="match_parent"
+            android:layout_height="54dp"
+            android:text="ВОЙТИ ЧЕРЕЗ TELEGRAM"
+            android:textColor="#17110A"
+            android:textStyle="bold"
+            android:backgroundTint="@color/gold"
+            android:layout_marginTop="44dp"/>
+
+        <TextView
+            android:id="@+id/loginHint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:textColor="@color/muted"
+            android:textSize="12sp"
+            android:layout_marginTop="18dp"/>
+    </LinearLayout>
+
+    <!-- ГЛАВНЫЙ ЭКРАН -->
+    <LinearLayout
+        android:id="@+id/mainBox"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center_horizontal"
+        android:padding="26dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/statusText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="ОТКЛЮЧЕНО"
+            android:textColor="@color/muted"
+            android:textSize="12sp"
+            android:letterSpacing="0.16"
+            android:layout_marginTop="40dp"/>
+
+        <ImageView
+            android:id="@+id/dragon"
+            android:layout_width="180dp"
+            android:layout_height="180dp"
+            android:src="@mipmap/ic_launcher"
+            android:layout_marginTop="26dp"/>
+
+        <Button
+            android:id="@+id/btnConnect"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:text="ПОДКЛЮЧИТЬ"
+            android:textColor="#17110A"
+            android:textStyle="bold"
+            android:textSize="15sp"
+            android:backgroundTint="@color/jade"
+            android:layout_marginTop="36dp"/>
+
+        <TextView
+            android:id="@+id/infoText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:textColor="@color/muted"
+            android:textSize="13sp"
+            android:lineSpacingExtra="4dp"
+            android:layout_marginTop="28dp"/>
+    </LinearLayout>
+</FrameLayout>
