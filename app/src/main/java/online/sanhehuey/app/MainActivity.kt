@@ -27,8 +27,26 @@ class MainActivity : AppCompatActivity() {
 
         b.btnLogin.setOnClickListener { doLogin() }
         b.btnConnect.setOnClickListener { toggle() }
-        b.btnTopup.setOnClickListener { openWeb("topup_url") }
-        b.btnRenew.setOnClickListener { openWeb("renew_url") }
+        b.burger.setOnClickListener { openMenu(true) }
+        b.scrim.setOnClickListener { openMenu(false) }
+        b.navVpn.setOnClickListener { section(0) }
+        b.navCab.setOnClickListener { section(1) }
+        b.navSet.setOnClickListener { section(2) }
+        b.btnRenewBal.setOnClickListener { renewFromBalance() }
+        b.btnTopupWeb.setOnClickListener { openWeb("topup_url") }
+        b.btnSupport.setOnClickListener {
+            runCatching {
+                startActivity(Intent(Intent.ACTION_VIEW,
+                    Uri.parse("https://t.me/S1llonGOD")))
+            }
+        }
+        b.btnLogout.setOnClickListener {
+            Store.clear(this)
+            openMenu(false)
+            showLogin()
+        }
+        b.verText.text = "Версия " + packageManager
+            .getPackageInfo(packageName, 0).versionName
 
         b.loginHint.text = "Вход по аккаунту.\nКлючи подтянутся сами — ничего импортировать не нужно."
         if (Store.token(this).isBlank()) showLogin() else loadState()
@@ -89,6 +107,7 @@ class MainActivity : AppCompatActivity() {
         }
         state = s
         showMain()
+        section(0)
         render()
     }
 
@@ -191,6 +210,96 @@ class MainActivity : AppCompatActivity() {
         runCatching {
             startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(target)))
         }.onFailure { err("Не удалось открыть страницу") }
+    }
+
+    private var tab = 0
+
+    private fun openMenu(show: Boolean) {
+        b.sidebar.visibility = if (show) android.view.View.VISIBLE else android.view.View.GONE
+        b.scrim.visibility = if (show) android.view.View.VISIBLE else android.view.View.GONE
+        if (show) {
+            b.sidebar.translationX = -264f * resources.displayMetrics.density
+            b.sidebar.animate().translationX(0f).setDuration(220).start()
+        }
+    }
+
+    private fun section(i: Int) {
+        tab = i
+        openMenu(false)
+        b.mainBox.visibility = if (i == 0) android.view.View.VISIBLE else android.view.View.GONE
+        b.cabinetBox.visibility = if (i == 1) android.view.View.VISIBLE else android.view.View.GONE
+        b.settingsBox.visibility = if (i == 2) android.view.View.VISIBLE else android.view.View.GONE
+        b.dragonBg.visibility = if (i == 0) android.view.View.VISIBLE else android.view.View.GONE
+        b.navVpn.isSelected = i == 0
+        b.navCab.isSelected = i == 1
+        b.navSet.isSelected = i == 2
+        if (i == 1) renderCabinet()
+    }
+
+    private fun renderCabinet() {
+        val s = state ?: return
+        b.cabCard.removeAllViews()
+        val days = s.optInt("days_left", 0)
+        val exp = s.optString("expires_at")
+        val lifetime = days > 3000 || exp.startsWith("01.01.2099")
+        cabRow("БАЛАНС", s.optInt("balance").toString() + " ₽", true)
+        cabRow("ПОДПИСКА", if (lifetime) "Бессрочная" else exp, false)
+        if (!lifetime && days > 0) cabRow("ОСТАЛОСЬ", days.toString() + " дн.", false)
+        cabRow("УСТРОЙСТВА",
+            s.optInt("slots_used").toString() + " из " + s.optInt("slots_total"), false)
+        cabRow("ПРОДЛЕНИЕ", s.optInt("renew_price").toString() + " ₽", false)
+
+        val lvl = s.optJSONObject("loyalty")
+        val tier = lvl?.optString("tier") ?: ""
+        if (tier.isNotBlank()) cabRow("СТАТУС", tier, false)
+
+        b.cabHint.text =
+            "Баланс общий с сайтом и ботом — пополнил там, здесь обновится сразу."
+    }
+
+    private fun cabRow(label: String, value: String, first: Boolean) {
+        if (!first) {
+            val sep = android.view.View(this)
+            sep.layoutParams = android.widget.LinearLayout.LayoutParams(
+                android.widget.LinearLayout.LayoutParams.MATCH_PARENT, dp(1)
+            ).also { it.topMargin = dp(12); it.bottomMargin = dp(12) }
+            sep.setBackgroundColor(0x24C9A15A)
+            b.cabCard.addView(sep)
+        }
+        val line = android.widget.LinearLayout(this)
+        val l = android.widget.TextView(this)
+        l.text = label
+        l.textSize = 10f
+        l.letterSpacing = 0.22f
+        l.setTextColor(getColor(R.color.muted))
+        l.typeface = androidx.core.content.res.ResourcesCompat.getFont(this, R.font.oswald)
+        l.layoutParams = android.widget.LinearLayout.LayoutParams(0,
+            android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        val v = android.widget.TextView(this)
+        v.text = value
+        v.textSize = 14f
+        v.setTextColor(getColor(R.color.gold))
+        v.typeface = androidx.core.content.res.ResourcesCompat.getFont(this, R.font.russo)
+        line.addView(l); line.addView(v)
+        b.cabCard.addView(line)
+    }
+
+    private fun renewFromBalance() = lifecycleScope.launch {
+        b.btnRenewBal.text = "СПИСЫВАЕМ…"
+        val t = Store.token(this@MainActivity)
+        val r = withContext(Dispatchers.IO) {
+            runCatching { Api.renew(t) }.getOrNull()
+        }
+        b.btnRenewBal.text = "ПРОДЛИТЬ С БАЛАНСА"
+        if (r == null) { err("Нет связи с сервером"); return@launch }
+        if (r.optBoolean("ok")) {
+            Toast.makeText(this@MainActivity,
+                "Продлено до " + r.optString("expires_at"), Toast.LENGTH_LONG).show()
+            loadState()
+            section(1)
+        } else {
+            err(r.optString("message").ifBlank { "Не удалось продлить" })
+        }
     }
 
     private fun dp(v: Int): Int =
