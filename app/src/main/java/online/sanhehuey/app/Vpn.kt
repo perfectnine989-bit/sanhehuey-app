@@ -6,10 +6,18 @@ import org.amnezia.awg.backend.Tunnel
 import org.amnezia.awg.config.Config
 import java.io.ByteArrayInputStream
 
-class AppTunnel(private val name: String) : Tunnel {
+class AppTunnel(private val tunnelName: String) : Tunnel {
     var state: Tunnel.State = Tunnel.State.DOWN
-    override fun getName(): String = name
-    override fun onStateChange(newState: Tunnel.State) { state = newState }
+
+    override fun getName(): String = tunnelName
+
+    override fun onStateChange(newState: Tunnel.State) {
+        state = newState
+    }
+
+    override fun isIpv4ResolutionPreferred(): Boolean = true
+
+    override fun isMetered(): Boolean = false
 }
 
 object Vpn {
@@ -24,7 +32,9 @@ object Vpn {
     fun isUp(ctx: Context): Boolean =
         try {
             backend(ctx).getState(tunnel) == Tunnel.State.UP
-        } catch (e: Exception) { false }
+        } catch (e: Exception) {
+            false
+        }
 
     fun connect(ctx: Context, configText: String) {
         val cfg = Config.parse(
