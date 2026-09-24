@@ -138,7 +138,13 @@ class MainActivity : AppCompatActivity() {
     private fun startTunnel() {
         val cfg = pendingConfig ?: return
         runCatching { Vpn.connect(this, cfg) }
-            .onFailure { err("Ошибка подключения: " + it.message) }
+            .onFailure {
+                android.util.Log.e("SanHeHuey", "connect failed", it)
+                err(
+                    "Ошибка: " + (it::class.java.simpleName) +
+                    " — " + (it.message ?: it.cause?.message ?: "нет деталей")
+                )
+            }
         render()
     }
 
