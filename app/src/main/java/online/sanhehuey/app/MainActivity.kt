@@ -97,7 +97,13 @@ class MainActivity : AppCompatActivity() {
         val s = withContext(Dispatchers.IO) {
             runCatching { Api.state(t) }.getOrNull()
         }
-        if (s == null || !s.optBoolean("ok")) {
+        if (s == null) {
+            // Сеть недоступна — не разлогиниваем, просто рендерим кэш
+            if (state != null) render()
+            return@launch
+        }
+        if (!s.optBoolean("ok")) {
+            // Сервер явно отверг токен — только тогда разлогиниваем
             Store.clear(this@MainActivity)
             return@launch showLogin()
         }
