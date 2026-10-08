@@ -27,8 +27,6 @@ class MainActivity : AppCompatActivity() {
 
         b.btnLogin.setOnClickListener { doLogin() }
         b.btnConnect.setOnClickListener { toggle() }
-        b.burger.setOnClickListener { openMenu(true) }
-        b.scrim.setOnClickListener { openMenu(false) }
         b.navVpn.setOnClickListener { section(0) }
         b.navCab.setOnClickListener { section(1) }
         b.navSet.setOnClickListener { section(2) }
@@ -232,9 +230,9 @@ class MainActivity : AppCompatActivity() {
         b.cabinetBox.visibility = if (i == 1) android.view.View.VISIBLE else android.view.View.GONE
         b.settingsBox.visibility = if (i == 2) android.view.View.VISIBLE else android.view.View.GONE
         b.dragonBg.visibility = if (i == 0) android.view.View.VISIBLE else android.view.View.GONE
-        b.navVpn.isSelected = i == 0
-        b.navCab.isSelected = i == 1
-        b.navSet.isSelected = i == 2
+        b.navVpn.setTextColor(if (i == 0) 0xFFC9A15A.toInt() else 0xFF7A7368.toInt())
+        b.navCab.setTextColor(if (i == 1) 0xFFC9A15A.toInt() else 0xFF7A7368.toInt())
+        b.navSet.setTextColor(if (i == 2) 0xFFC9A15A.toInt() else 0xFF7A7368.toInt())
         if (i == 1) renderCabinet()
     }
 

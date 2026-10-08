@@ -9,8 +9,4 @@
     <color name="red">#D9534F</color>
     <color name="text">#EDE4D4</color>
     <color name="muted">#7A7368</color>
-    <color name="crimson">#BC002D</color>
-    <color name="crimson_dim">#8C001F</color>
-    <color name="nav_bg">#0A0B0D</color>
-    <color name="card_bg">#0D1210</color>
 </resources>
