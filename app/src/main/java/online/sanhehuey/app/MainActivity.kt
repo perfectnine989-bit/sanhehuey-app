@@ -215,12 +215,7 @@ class MainActivity : AppCompatActivity() {
     private var tab = 0
 
     private fun openMenu(show: Boolean) {
-        b.sidebar.visibility = if (show) android.view.View.VISIBLE else android.view.View.GONE
-        b.scrim.visibility = if (show) android.view.View.VISIBLE else android.view.View.GONE
-        if (show) {
-            b.sidebar.translationX = -264f * resources.displayMetrics.density
-            b.sidebar.animate().translationX(0f).setDuration(220).start()
-        }
+        // sidebar removed, bottom nav used instead
     }
 
     private fun section(i: Int) {
