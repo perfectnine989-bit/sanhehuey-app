@@ -127,7 +127,7 @@ class MainActivity : AppCompatActivity() {
         b.emberGlow.setImageResource(if (up) R.drawable.ember_on else R.drawable.ember_off)
         b.glyph.setTextColor(getColor(if (up) R.color.jade else R.color.gold_dim))
         b.glyph.setShadowLayer(22f, 0f, 0f, getColor(if (up) R.color.jade else R.color.gold_dim))
-        b.edgeGlow.visibility = if (up) android.view.View.VISIBLE else android.view.View.GONE
+        // edge glow disabled
         b.btnLabel.setTextColor(getColor(if (up) R.color.jade else R.color.gold))
         b.dragonBg.alpha = if (up) 0.16f else 0.10f
 
