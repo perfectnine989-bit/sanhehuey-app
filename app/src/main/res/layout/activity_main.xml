@@ -175,6 +175,7 @@
                     android:textSize="1sp"
                     android:visibility="gone"/>
             </FrameLayout>
+            </FrameLayout>
 
             <TextView
                 android:id="@+id/statusText"
