@@ -116,6 +116,8 @@
                 android:textColor="@color/text"
                 android:textSize="24sp"
                 android:textStyle="bold"
+                android:shadowColor="#60000000"
+                android:shadowDx="0" android:shadowDy="2" android:shadowRadius="6"
                 android:layout_marginTop="8dp"/>
 
             <View
@@ -293,7 +295,8 @@
                     android:letterSpacing="0.14"
                     android:textColor="@color/gold"
                     android:background="@drawable/card_border"
-                    android:layout_marginTop="10dp"/>
+                    android:layout_marginTop="10dp"
+            android:backgroundTint="@null"/>
 
                 <TextView
                     android:id="@+id/cabHint"
@@ -338,7 +341,8 @@
                 android:letterSpacing="0.14"
                 android:textColor="@color/gold"
                 android:background="@drawable/card_border"
-                android:layout_marginTop="28dp"/>
+                android:layout_marginTop="28dp"
+            android:backgroundTint="@null"/>
 
             <Button
                 android:id="@+id/btnLogout"
@@ -350,7 +354,8 @@
                 android:letterSpacing="0.14"
                 android:textColor="@color/muted"
                 android:background="@drawable/card_border"
-                android:layout_marginTop="10dp"/>
+                android:layout_marginTop="10dp"
+            android:backgroundTint="@null"/>
 
             <View
                 android:layout_width="0dp"

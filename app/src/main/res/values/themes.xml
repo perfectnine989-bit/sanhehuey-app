@@ -4,5 +4,14 @@
         <item name="android:statusBarColor">@color/bg</item>
         <item name="android:navigationBarColor">@color/bg</item>
         <item name="android:windowBackground">@color/bg</item>
+        <item name="colorPrimary">@color/gold</item>
+        <item name="colorOnPrimary">@color/bg</item>
+        <item name="colorPrimaryContainer">@color/surface</item>
+        <item name="colorSecondary">@color/jade</item>
+        <item name="colorOnSecondary">@color/bg</item>
+        <item name="colorSurface">@color/bg</item>
+        <item name="colorOnSurface">@color/text</item>
+        <item name="colorError">@color/crimson</item>
+        <item name="android:colorControlHighlight">#22C9A15A</item>
     </style>
 </resources>
