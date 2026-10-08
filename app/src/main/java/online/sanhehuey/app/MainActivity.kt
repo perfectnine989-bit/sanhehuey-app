@@ -24,6 +24,10 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         b = ActivityMainBinding.inflate(layoutInflater)
         setContentView(b.root)
+        b.dragonBg.setColorFilter(
+            android.graphics.Color.parseColor("#C9A15A"),
+            android.graphics.PorterDuff.Mode.SRC_ATOP
+        )
 
         b.btnLogin.setOnClickListener { doLogin() }
         b.btnConnect.setOnClickListener { toggle() }
@@ -228,6 +232,9 @@ class MainActivity : AppCompatActivity() {
         b.navVpn.setTextColor(if (i == 0) 0xFFC9A15A.toInt() else 0xFF7A7368.toInt())
         b.navCab.setTextColor(if (i == 1) 0xFFC9A15A.toInt() else 0xFF7A7368.toInt())
         b.navSet.setTextColor(if (i == 2) 0xFFC9A15A.toInt() else 0xFF7A7368.toInt())
+        b.navVpn.background = if (i == 0) androidx.core.content.ContextCompat.getDrawable(this, R.drawable.nav_item_active) else null
+        b.navCab.background = if (i == 1) androidx.core.content.ContextCompat.getDrawable(this, R.drawable.nav_item_active) else null
+        b.navSet.background = if (i == 2) androidx.core.content.ContextCompat.getDrawable(this, R.drawable.nav_item_active) else null
         if (i == 1) renderCabinet()
     }
 

@@ -17,8 +17,13 @@
             android:layout_height="match_parent"
             android:scaleType="centerCrop"
             android:src="@drawable/dragon_cn"
-            android:alpha="0.22"
+            android:alpha="0.38"
             android:contentDescription="@null"/>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/dragon_fade"/>
 
         <!-- ЭКРАН ВХОДА -->
         <LinearLayout
@@ -127,8 +132,8 @@
 
                 <FrameLayout
                     android:id="@+id/btnConnect"
-                    android:layout_width="220dp"
-                    android:layout_height="220dp"
+                    android:layout_width="236dp"
+                    android:layout_height="236dp"
                     android:layout_gravity="center"
                     android:background="@drawable/ring_off"
                     android:clickable="true"
@@ -170,9 +175,11 @@
                 android:layout_height="wrap_content"
                 android:fontFamily="@font/russo"
                 android:text="ТРИАДА СПИТ"
-                android:textSize="15sp"
-                android:letterSpacing="0.26"
-                android:textColor="@color/gold_dim"/>
+                android:textSize="19sp"
+                android:letterSpacing="0.3"
+                android:textColor="@color/gold_dim"
+                android:shadowColor="#80C9A15A"
+                android:shadowRadius="12"/>
 
             <TextView
                 android:id="@+id/statusSub"
@@ -366,61 +373,68 @@
     <!-- НИЖНЯЯ НАВИГАЦИЯ -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="64dp"
+        android:layout_height="72dp"
         android:orientation="horizontal"
         android:background="@drawable/nav_bg">
 
-        <TextView
-            android:id="@+id/navVpn"
+        <LinearLayout
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:gravity="center"
-            android:fontFamily="@font/russo"
-            android:text="龙"
-            android:textSize="22sp"
-            android:textColor="@color/gold_dim"
-            android:clickable="true"
-            android:focusable="true"/>
+            android:padding="10dp">
+            <TextView
+                android:id="@+id/navVpn"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:fontFamily="@font/russo"
+                android:text="龙"
+                android:textSize="22sp"
+                android:textColor="@color/gold"
+                android:background="@drawable/nav_item_active"
+                android:clickable="true"
+                android:focusable="true"/>
+        </LinearLayout>
 
-        <View
-            android:layout_width="1dp"
-            android:layout_height="24dp"
-            android:layout_gravity="center_vertical"
-            android:background="#1AC9A15A"/>
-
-        <TextView
-            android:id="@+id/navCab"
+        <LinearLayout
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:gravity="center"
-            android:fontFamily="@font/russo"
-            android:text="кабинет"
-            android:textSize="9sp"
-            android:letterSpacing="0.2"
-            android:textColor="@color/muted"
-            android:clickable="true"
-            android:focusable="true"/>
+            android:padding="10dp">
+            <TextView
+                android:id="@+id/navCab"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:fontFamily="@font/russo"
+                android:text="КАБИНЕТ"
+                android:textSize="10sp"
+                android:letterSpacing="0.18"
+                android:textColor="@color/muted"
+                android:clickable="true"
+                android:focusable="true"/>
+        </LinearLayout>
 
-        <View
-            android:layout_width="1dp"
-            android:layout_height="24dp"
-            android:layout_gravity="center_vertical"
-            android:background="#1AC9A15A"/>
-
-        <TextView
-            android:id="@+id/navSet"
+        <LinearLayout
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:gravity="center"
-            android:fontFamily="@font/russo"
-            android:text="⚙"
-            android:textSize="18sp"
-            android:textColor="@color/muted"
-            android:clickable="true"
-            android:focusable="true"/>
+            android:padding="10dp">
+            <TextView
+                android:id="@+id/navSet"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:fontFamily="@font/russo"
+                android:text="⚙"
+                android:textSize="19sp"
+                android:textColor="@color/muted"
+                android:clickable="true"
+                android:focusable="true"/>
+        </LinearLayout>
     </LinearLayout>
 
 </LinearLayout>
