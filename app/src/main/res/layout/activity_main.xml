@@ -83,7 +83,8 @@
                 android:textColor="#14110A"
                 android:textSize="13sp"
                 android:letterSpacing="0.2"
-                android:backgroundTint="@color/gold"
+                android:background="@drawable/seal_button_primary"
+            android:backgroundTint="@null"
                 android:layout_marginTop="44dp"/>
         </LinearLayout>
 
@@ -133,42 +134,46 @@
                 android:layout_weight="1">
 
                 <FrameLayout
-                    android:id="@+id/btnConnect"
-                    android:layout_width="236dp"
-                    android:layout_height="236dp"
+                android:id="@+id/btnConnect"
+                android:layout_width="280dp"
+                android:layout_height="280dp"
+                android:layout_gravity="center"
+                android:clickable="true"
+                android:focusable="true">
+
+                <ImageView
+                    android:id="@+id/auraGlow"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:src="@drawable/glow_off"
+                    android:contentDescription="@null"/>
+
+                <ImageView
+                    android:id="@+id/emberGlow"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:src="@drawable/ember_off"
+                    android:contentDescription="@null"/>
+
+                <TextView
+                    android:id="@+id/glyph"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
                     android:layout_gravity="center"
-                    android:background="@drawable/ring_off"
-                    android:clickable="true"
-                    android:focusable="true">
+                    android:fontFamily="@font/playfair"
+                    android:text="龙"
+                    android:textSize="94sp"
+                    android:textColor="@color/gold_dim"
+                    android:shadowColor="#AAC9A15A"
+                    android:shadowDx="0" android:shadowDy="0" android:shadowRadius="22"/>
 
-                    <LinearLayout
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="center"
-                        android:orientation="vertical"
-                        android:gravity="center">
-
-                        <TextView
-                            android:id="@+id/glyph"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:fontFamily="@font/playfair"
-                            android:text="龙"
-                            android:textSize="82sp"
-                            android:textColor="@color/gold_dim"/>
-
-                        <TextView
-                            android:id="@+id/btnLabel"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:fontFamily="@font/russo"
-                            android:text="ПОДКЛЮЧИТЬ"
-                            android:textSize="11sp"
-                            android:letterSpacing="0.3"
-                            android:textColor="@color/gold"
-                            android:layout_marginTop="6dp"/>
-                    </LinearLayout>
-                </FrameLayout>
+                <TextView
+                    android:id="@+id/btnLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=""
+                    android:textSize="1sp"
+                    android:visibility="gone"/>
             </FrameLayout>
 
             <TextView
@@ -282,7 +287,8 @@
                     android:textSize="12sp"
                     android:letterSpacing="0.14"
                     android:textColor="#14110A"
-                    android:backgroundTint="@color/gold"
+                    android:background="@drawable/seal_button_primary"
+            android:backgroundTint="@null"
                     android:layout_marginTop="12dp"/>
 
                 <Button
@@ -294,7 +300,7 @@
                     android:textSize="12sp"
                     android:letterSpacing="0.14"
                     android:textColor="@color/gold"
-                    android:background="@drawable/card_border"
+                    android:background="@drawable/seal_button_secondary"
                     android:layout_marginTop="10dp"
             android:backgroundTint="@null"/>
 
@@ -340,7 +346,7 @@
                 android:textSize="12sp"
                 android:letterSpacing="0.14"
                 android:textColor="@color/gold"
-                android:background="@drawable/card_border"
+                android:background="@drawable/seal_button_secondary"
                 android:layout_marginTop="28dp"
             android:backgroundTint="@null"/>
 
@@ -353,7 +359,7 @@
                 android:textSize="12sp"
                 android:letterSpacing="0.14"
                 android:textColor="@color/muted"
-                android:background="@drawable/card_border"
+                android:background="@drawable/seal_button_secondary"
                 android:layout_marginTop="10dp"
             android:backgroundTint="@null"/>
 
@@ -372,6 +378,22 @@
                 android:textSize="11sp"
                 android:letterSpacing="0.1"/>
         </LinearLayout>
+
+        <ImageView
+            android:id="@+id/edgeGlow"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:src="@drawable/edge_glow_on"
+            android:scaleType="fitXY"
+            android:visibility="gone"
+            android:contentDescription="@null"/>
+
+        <ImageView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:src="@drawable/smoke_overlay"
+            android:alpha="0.45"
+            android:contentDescription="@null"/>
 
     </FrameLayout>
 
