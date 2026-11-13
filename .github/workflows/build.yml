@@ -23,7 +23,12 @@ jobs:
         run: |
           chmod +x ./gradlew || true
           gradle wrapper --gradle-version 8.11.1 || true
-          ./gradlew assembleDebug --stacktrace
+          ./gradlew assembleDebug --stacktrace 2>&1 | tee build.log
+
+      - name: Show errors
+        if: failure()
+        run: |
+          grep -E "^e: |^w: .*rror|error:|What went wrong" -A4 build.log | head -160 || true
 
       - uses: actions/upload-artifact@v4
         with:

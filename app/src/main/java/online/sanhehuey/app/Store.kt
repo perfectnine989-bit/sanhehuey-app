@@ -25,6 +25,15 @@ object Store {
         return id
     }
 
+    fun mode(ctx: Context): Mode =
+        if (ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE).getString("mode", "smart") == "global")
+            Mode.Global else Mode.Smart
+
+    fun saveMode(ctx: Context, mode: Mode) {
+        ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE)
+            .edit().putString("mode", if (mode == Mode.Global) "global" else "smart").apply()
+    }
+
     fun clearToken(ctx: Context) {
         ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE)
             .edit().remove(KEY_TOKEN).apply()
