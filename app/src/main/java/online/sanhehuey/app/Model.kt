@@ -18,7 +18,10 @@ import org.json.JSONObject
 import java.net.InetSocketAddress
 import java.net.Socket
 
-enum class Screen { Loading, Login, Gate, Main }
+enum class Screen { Loading, Login, Gate, Keys, Main }
+
+/** Ключ аккаунта. inUse — занят каким-то устройством, mine — именно этим, by — название занявшего устройства. */
+data class KeyItem(val id: String, val name: String, val inUse: Boolean, val mine: Boolean, val by: String)
 
 class AppModel(private val ctx: Context, private val scope: CoroutineScope) {
     var screen by mutableStateOf(Screen.Loading)
@@ -31,6 +34,20 @@ class AppModel(private val ctx: Context, private val scope: CoroutineScope) {
     var connectedAt by mutableStateOf(0L)
     var busy by mutableStateOf(false)
     var notice by mutableStateOf<String?>(null)
+
+    // выбор ключа
+    var keys by mutableStateOf<List<KeyItem>>(emptyList())
+    var selectedKey by mutableStateOf(Store.keyId(ctx))
+    var keyBusy by mutableStateOf(false)
+    var keyTakeover by mutableStateOf<KeyItem?>(null)
+    var keysError by mutableStateOf<String?>(null)
+    var keysFromProfile by mutableStateOf(false)
+    private var keysSupported = false
+
+    // приложения для «Умного» режима
+    var appsPage by mutableStateOf(false)
+    var directApps by mutableStateOf(Store.directApps(ctx))
+    private var appliedApps: Set<String> = emptySet()
 
     var down by mutableStateOf(0.0)
     var up by mutableStateOf(0.0)
@@ -129,6 +146,7 @@ class AppModel(private val ctx: Context, private val scope: CoroutineScope) {
             if (!s.optBoolean("ok")) {
                 Store.clearToken(ctx)
                 state = null
+                selectedKey = ""
                 screen = Screen.Login
                 return@launch
             }
@@ -141,7 +159,8 @@ class AppModel(private val ctx: Context, private val scope: CoroutineScope) {
                 active = c?.optBoolean("ok") == true
             }
             if (active) {
-                screen = Screen.Main
+                refreshKeys(token)
+                screen = if (keysSupported && selectedKey.isBlank()) Screen.Keys else Screen.Main
             } else {
                 if (status == VpnStatus.On) disconnectNow()
                 screen = Screen.Gate
@@ -176,6 +195,11 @@ class AppModel(private val ctx: Context, private val scope: CoroutineScope) {
             notice = null
             error = null
             loginError = null
+            keys = emptyList()
+            selectedKey = ""
+            keysSupported = false
+            keysFromProfile = false
+            appsPage = false
             screen = Screen.Login
         }
     }
@@ -188,6 +212,156 @@ class AppModel(private val ctx: Context, private val scope: CoroutineScope) {
     }
 
     fun openFromState(key: String) = open(state?.optString(key).orEmpty())
+
+
+    // ---------- приложения для «Умного» режима ----------
+
+    fun toggleDirectApp(pkg: String) {
+        val next = directApps.toMutableSet()
+        if (!next.add(pkg)) next.remove(pkg)
+        directApps = next
+        Store.saveDirectApps(ctx, next)
+    }
+
+    fun clearDirectApps() {
+        directApps = emptySet()
+        Store.saveDirectApps(ctx, emptySet())
+    }
+
+    /** Закрыли список: если туннель уже поднят и список изменился — переподключаемся с новым. */
+    fun closeApps() {
+        appsPage = false
+        if (status == VpnStatus.On && mode == Mode.Smart && directApps != appliedApps) {
+            scope.launch {
+                disconnectNow()
+                connect()
+            }
+        }
+    }
+
+    // ---------- выбор ключа ----------
+
+    /**
+     * Сервер — источник правды: какой ключ закреплён за этим устройством и кем заняты остальные.
+     * Если сервер не знает про ключи (старая версия API) — всё работает как раньше, без выбора.
+     */
+    private suspend fun refreshKeys(token: String) {
+        val r = withContext(Dispatchers.IO) {
+            runCatching { Api.keys(token, Store.deviceId(ctx)) }.getOrNull()
+        } ?: return
+        if (!r.optBoolean("ok")) {
+            keysSupported = false
+            return
+        }
+        val arr = r.optJSONArray("keys")
+        val list = mutableListOf<KeyItem>()
+        if (arr != null) {
+            for (i in 0 until arr.length()) {
+                val k = arr.optJSONObject(i) ?: continue
+                val id = k.optString("id")
+                if (id.isBlank()) continue
+                list.add(
+                    KeyItem(
+                        id = id,
+                        name = k.optString("name").ifBlank { "Ключ " + (i + 1) },
+                        inUse = k.optBoolean("in_use"),
+                        mine = k.optBoolean("mine"),
+                        by = k.optString("by")
+                    )
+                )
+            }
+        }
+        keys = list
+        keysSupported = list.isNotEmpty()
+        if (!keysSupported) return
+
+        var server = r.optString("selected").ifBlank { list.firstOrNull { it.mine }?.id.orEmpty() }
+
+        // Единственный свободный ключ выбираем сами
+        if (server.isBlank() && list.size == 1 && !list[0].inUse) {
+            val sel = withContext(Dispatchers.IO) {
+                runCatching {
+                    Api.selectKey(token, Store.deviceId(ctx), deviceName(), list[0].id, false)
+                }.getOrNull()
+            }
+            if (sel?.optBoolean("ok") == true) server = list[0].id
+        }
+
+        val local = Store.keyId(ctx)
+        if (server != local) {
+            Store.saveKeyId(ctx, server)
+            selectedKey = server
+            if (status == VpnStatus.On) {
+                disconnectNow()
+                if (server.isBlank()) {
+                    notice = "Твой ключ заняли на другом устройстве. Выбери ключ заново."
+                } else {
+                    connect()
+                }
+            }
+        }
+    }
+
+    private fun deviceName(): String =
+        (android.os.Build.MANUFACTURER.orEmpty() + " " + android.os.Build.MODEL.orEmpty()).trim().ifBlank { "Android" }
+
+    fun openKeys() {
+        keysFromProfile = true
+        keysError = null
+        keyTakeover = null
+        scope.launch {
+            refreshKeys(Store.token(ctx))
+            screen = Screen.Keys
+        }
+    }
+
+    fun closeKeys() {
+        keyTakeover = null
+        keysFromProfile = false
+        if (selectedKey.isNotBlank()) screen = Screen.Main
+    }
+
+    fun pickKey(item: KeyItem, force: Boolean = false) {
+        if (keyBusy) return
+        if (item.inUse && !item.mine && !force) {
+            keyTakeover = item
+            return
+        }
+        scope.launch {
+            keyBusy = true
+            keysError = null
+            keyTakeover = null
+            val r = withContext(Dispatchers.IO) {
+                runCatching {
+                    Api.selectKey(Store.token(ctx), Store.deviceId(ctx), deviceName(), item.id, force)
+                }.getOrNull()
+            }
+            keyBusy = false
+            if (r == null) {
+                keysError = "Нет связи с сервером"
+                return@launch
+            }
+            if (!r.optBoolean("ok")) {
+                if (r.optBoolean("busy")) {
+                    keyTakeover = item.copy(inUse = true, by = r.optString("by").ifBlank { item.by })
+                } else {
+                    keysError = r.optString("message").ifBlank { "Не удалось выбрать ключ" }
+                }
+                return@launch
+            }
+            val changed = Store.keyId(ctx) != item.id
+            Store.saveKeyId(ctx, item.id)
+            selectedKey = item.id
+            keysFromProfile = false
+            screen = Screen.Main
+            val wasOn = status == VpnStatus.On
+            refreshKeys(Store.token(ctx))
+            if (wasOn && changed) {
+                disconnectNow()
+                connect()
+            }
+        }
+    }
 
     // ---------- туннель ----------
 
@@ -222,7 +396,13 @@ class AppModel(private val ctx: Context, private val scope: CoroutineScope) {
         scope.launch {
             error = null
             status = VpnStatus.Connecting
-            val c = withContext(Dispatchers.IO) { runCatching { Api.config(Store.token(ctx)) }.getOrNull() }
+            val key = if (keysSupported) Store.keyId(ctx) else ""
+            val c = withContext(Dispatchers.IO) {
+                runCatching {
+                    if (key.isNotBlank()) Api.config(Store.token(ctx), Store.deviceId(ctx), key)
+                    else Api.config(Store.token(ctx))
+                }.getOrNull()
+            }
             if (c == null) {
                 status = VpnStatus.Off
                 error = "Нет связи с сервером"
@@ -266,6 +446,7 @@ class AppModel(private val ctx: Context, private val scope: CoroutineScope) {
             }
             val failure = res.exceptionOrNull()
             if (failure == null) {
+                appliedApps = Store.directApps(ctx)
                 status = VpnStatus.On
                 connectedAt = System.currentTimeMillis()
             } else {

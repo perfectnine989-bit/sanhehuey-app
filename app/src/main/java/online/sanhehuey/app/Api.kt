@@ -64,6 +64,41 @@ object Api {
         }
     }
 
-    fun config(token: String): JSONObject =
-        get("/api/app/config?token=$token")
+    /** keyId пустой — старое поведение сервера (ключ по умолчанию). */
+    fun config(token: String, device: String = "", keyId: String = ""): JSONObject {
+        var path = "/api/app/config?token=$token"
+        if (device.isNotBlank()) path += "&device=" + enc(device)
+        if (keyId.isNotBlank()) path += "&key_id=" + enc(keyId)
+        return get(path)
+    }
+
+    /**
+     * Ключи аккаунта и то, кем они заняты:
+     * {ok, selected, keys:[{id, name, in_use, mine, by}]}
+     */
+    fun keys(token: String, device: String): JSONObject =
+        get("/api/app/keys?token=$token&device=" + enc(device))
+
+    /**
+     * Закрепить ключ за этим устройством. Если ключ занят другим устройством,
+     * сервер отвечает {ok:false, busy:true, by:"..."}; с force=true ключ забирается.
+     */
+    fun selectKey(token: String, device: String, deviceName: String, keyId: String, force: Boolean): JSONObject {
+        val json = JSONObject()
+            .put("token", token)
+            .put("device", device)
+            .put("device_name", deviceName)
+            .put("key_id", keyId)
+            .put("force", force)
+        val req = Request.Builder()
+            .url(BASE + "/api/app/key/select")
+            .post(json.toString().toRequestBody("application/json".toMediaType()))
+            .build()
+        http.newCall(req).execute().use { r ->
+            val t = r.body?.string().orEmpty()
+            return if (t.isBlank()) JSONObject() else JSONObject(t)
+        }
+    }
+
+    private fun enc(v: String): String = java.net.URLEncoder.encode(v, "UTF-8")
 }

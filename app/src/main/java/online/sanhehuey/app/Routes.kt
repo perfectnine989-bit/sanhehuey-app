@@ -17,8 +17,32 @@ object Routes {
         return joined
     }
 
+    /**
+     * Приложения, которые идут мимо туннеля (ExcludedApplications в секции [Interface]).
+     * Если строка уже есть в конфиге — дополняем её, а не дублируем.
+     */
+    private fun excludeApps(config: String, apps: Set<String>): String {
+        if (apps.isEmpty()) return config
+        val lines = config.lines().toMutableList()
+        val existing = lines.indexOfFirst { it.trim().startsWith("ExcludedApplications", ignoreCase = true) }
+        if (existing >= 0) {
+            val old = lines[existing].substringAfter("=").split(",").map { it.trim() }.filter { it.isNotEmpty() }
+            lines[existing] = "ExcludedApplications = " + (old + apps).distinct().joinToString(", ")
+            return lines.joinToString("\n")
+        }
+        val iface = lines.indexOfFirst { it.trim().equals("[Interface]", ignoreCase = true) }
+        if (iface < 0) return config
+        lines.add(iface + 1, "ExcludedApplications = " + apps.sorted().joinToString(", "))
+        return lines.joinToString("\n")
+    }
+
     fun apply(ctx: Context, config: String, mode: Mode): String {
         if (mode != Mode.Smart) return config
+        val withApps = excludeApps(config, Store.directApps(ctx))
+        return applyRoutes(ctx, withApps)
+    }
+
+    private fun applyRoutes(ctx: Context, config: String): String {
         val routes = runCatching { list(ctx) }.getOrNull()
         if (routes.isNullOrBlank()) return config
         var replaced = false

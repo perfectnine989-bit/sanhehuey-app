@@ -66,8 +66,10 @@ fun AppRoot(model: AppModel, version: String) {
                     }
                     Screen.Login -> LoginScreen(model)
                     Screen.Gate -> GateScreen(model, palette)
+                    Screen.Keys -> KeysScreen(model, palette)
                     Screen.Main ->
-                        if (profileTab) ProfileScreen(model, palette, version)
+                        if (model.appsPage) AppsScreen(model, palette)
+                        else if (profileTab) ProfileScreen(model, palette, version)
                         else HomeScreen(model, palette, time)
                 }
             }
@@ -76,7 +78,10 @@ fun AppRoot(model: AppModel, version: String) {
                 GlassSegmented(
                     items = listOf(false, true),
                     selected = profileTab,
-                    onSelect = { profileTab = it },
+                    onSelect = {
+                        if (model.appsPage) model.closeApps()
+                        profileTab = it
+                    },
                     tint = palette.main.copy(alpha = 0.14f),
                     height = 52.dp,
                     corner = 26.dp,
@@ -351,9 +356,24 @@ private fun ProfileScreen(model: AppModel, palette: Palette, version: String) {
             VpnStatus.Off -> "Отключено"
         }
         val connection = mutableListOf("Протокол" to "AmneziaWG", "Режим" to model.mode.title, "Статус" to statusText)
+        val keyName = model.keys.firstOrNull { it.id == model.selectedKey }?.name.orEmpty()
+        if (keyName.isNotBlank()) connection.add("Ключ" to keyName)
         val location = s?.optString("location").orEmpty()
         if (location.isNotBlank()) connection.add("Локация" to location)
         InfoCard("СОЕДИНЕНИЕ", connection)
+        if (model.keys.size > 1) {
+            GlassButton("Сменить ключ", tint = palette.main.copy(alpha = 0.30f)) { model.openKeys() }
+        }
+
+        InfoCard(
+            "УМНЫЙ РЕЖИМ",
+            listOf("Напрямую (приложения)" to (if (model.directApps.isEmpty()) "нет" else model.directApps.size.toString()))
+        )
+        GlassButton("Приложения напрямую", tint = palette.main.copy(alpha = 0.30f)) { model.appsPage = true }
+        T(
+            "Выбранные приложения в «Умном» режиме обходят VPN целиком, как и российские сайты.",
+            12, color = Th.muted, align = TextAlign.Center, modifier = Modifier.fillMaxWidth()
+        )
         InfoCard("ПРИЛОЖЕНИЕ", listOf("Версия" to version))
 
         GlassButton("Написать в поддержку", tint = Th.telegram.copy(alpha = 0.26f)) {

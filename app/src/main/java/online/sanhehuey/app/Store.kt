@@ -34,9 +34,28 @@ object Store {
             .edit().putString("mode", if (mode == Mode.Global) "global" else "smart").apply()
     }
 
+    /** Пакеты, которые в «Умном» режиме идут напрямую, мимо туннеля. */
+    fun directApps(ctx: Context): Set<String> =
+        ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE)
+            .getStringSet("direct_apps", emptySet())?.toSet() ?: emptySet()
+
+    fun saveDirectApps(ctx: Context, apps: Set<String>) {
+        ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE)
+            .edit().putStringSet("direct_apps", apps.toSet()).apply()
+    }
+
+    /** Ключ, выбранный на этом устройстве (синхронизируется с сервером). */
+    fun keyId(ctx: Context): String =
+        ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE).getString("key_id", "") ?: ""
+
+    fun saveKeyId(ctx: Context, id: String) {
+        ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE)
+            .edit().putString("key_id", id).apply()
+    }
+
     fun clearToken(ctx: Context) {
         ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE)
-            .edit().remove(KEY_TOKEN).apply()
+            .edit().remove(KEY_TOKEN).remove("key_id").apply()
     }
 
     fun clear(ctx: Context) {
