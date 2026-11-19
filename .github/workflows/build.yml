@@ -28,6 +28,7 @@ jobs:
 
       - name: Build debug APK
         run: |
+          set -o pipefail
           chmod +x ./gradlew || true
           gradle wrapper --gradle-version 8.11.1 || true
           ./gradlew assembleDebug --stacktrace 2>&1 | tee build.log
@@ -43,3 +44,11 @@ jobs:
         with:
           name: sanhehuey-apk
           path: app/build/outputs/apk/debug/*.apk
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: build.log
+          if-no-files-found: ignore
