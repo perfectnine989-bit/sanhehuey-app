@@ -355,7 +355,7 @@ private fun ProfileScreen(model: AppModel, palette: Palette, version: String) {
             VpnStatus.Disconnecting -> "Отключение"
             VpnStatus.Off -> "Отключено"
         }
-        val connection = mutableListOf("Протокол" to "AmneziaWG", "Режим" to model.mode.title, "Статус" to statusText)
+        val connection = mutableListOf("Протокол" to (if (model.keyType == "cdn") "VLESS · CDN" else "AmneziaWG"), "Режим" to model.mode.title, "Статус" to statusText)
         val keyName = model.keys.firstOrNull { it.id == model.selectedKey }?.name.orEmpty()
         if (keyName.isNotBlank()) connection.add("Ключ" to keyName)
         val location = s?.optString("location").orEmpty()

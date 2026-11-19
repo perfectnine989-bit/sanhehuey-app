@@ -49,12 +49,17 @@ class AppModel(private val ctx: Context, private val scope: CoroutineScope) {
     var directApps by mutableStateOf(Store.directApps(ctx))
     private var appliedApps: Set<String> = emptySet()
 
+    /** Тип ключа аккаунта: "cdn" или "awg" (по ответу сервера). */
+    val keyType: String get() = state?.optString("key_type").orEmpty().ifBlank { "awg" }
+
     var down by mutableStateOf(0.0)
     var up by mutableStateOf(0.0)
     var ping by mutableStateOf<Int?>(null)
 
     var requestVpnPermission: ((Intent) -> Unit)? = null
     private var pendingConfig: String? = null
+    private var pendingCdn: JSONObject? = null
+    private var cdnNode: String? = null
     private var loginJob: Job? = null
 
     // ---------- запуск ----------
@@ -413,7 +418,13 @@ class AppModel(private val ctx: Context, private val scope: CoroutineScope) {
                 loadState()
                 return@launch
             }
-            pendingConfig = c.optString("config")
+            if (c.optString("type") == "cdn") {
+                pendingCdn = c.optJSONObject("cdn")
+                pendingConfig = null
+            } else {
+                pendingCdn = null
+                pendingConfig = c.optString("config")
+            }
             val prepare = VpnService.prepare(ctx)
             if (prepare != null) {
                 val ask = requestVpnPermission
@@ -435,14 +446,38 @@ class AppModel(private val ctx: Context, private val scope: CoroutineScope) {
 
     private fun startTunnel() {
         val raw = pendingConfig
-        if (raw == null) {
+        val cdn = pendingCdn
+        if (raw == null && cdn == null) {
             status = VpnStatus.Off
             return
         }
         scope.launch {
             status = VpnStatus.Connecting
             val res = withContext(Dispatchers.IO) {
-                runCatching { Vpn.connect(ctx, Routes.apply(ctx, raw, mode)) }
+                runCatching {
+                    if (cdn != null) {
+                        val info = Cdn.parse(cdn) ?: throw IllegalStateException("Некорректный CDN-ключ с сервера")
+                        val ranked = Cdn.rank(info, Store.cdnNodes(ctx))
+                        if (ranked.isEmpty()) throw IllegalStateException("Ни один адрес Cloudflare не отвечает. Проверь интернет.")
+                        var started: String? = null
+                        var lastFail: Throwable? = null
+                        for ((node, _) in ranked.take(3)) {
+                            try {
+                                Vpn.connectCdn(ctx, Cdn.xrayConfig(info, node), mode == Mode.Smart)
+                                started = node
+                                break
+                            } catch (e: Throwable) {
+                                lastFail = e
+                            }
+                        }
+                        if (started == null) throw (lastFail ?: IllegalStateException("не удалось подключиться"))
+                        cdnNode = started
+                        Store.saveCdnNodes(ctx, ranked.take(3).map { it.first })
+                    } else {
+                        cdnNode = null
+                        Vpn.connect(ctx, Routes.apply(ctx, raw!!, mode))
+                    }
+                }
             }
             val failure = res.exceptionOrNull()
             if (failure == null) {
@@ -484,7 +519,9 @@ class AppModel(private val ctx: Context, private val scope: CoroutineScope) {
 
     private fun measurePing(): Int? = runCatching {
         val started = System.nanoTime()
-        Socket().use { it.connect(InetSocketAddress("1.1.1.1", 443), 2500) }
+        // у CDN приложение вне туннеля, поэтому меряем до узла Cloudflare, через который идёт соединение
+        val target = cdnNode ?: "1.1.1.1"
+        Socket().use { it.connect(InetSocketAddress(target, 443), 2500) }
         ((System.nanoTime() - started) / 1_000_000L).toInt()
     }.getOrNull()
 }

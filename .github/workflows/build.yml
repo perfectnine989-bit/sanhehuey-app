@@ -19,6 +19,13 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
+      - name: Download Xray core (libv2ray.aar)
+        run: |
+          mkdir -p app/libs
+          curl -fL --retry 3 -o app/libs/libv2ray.aar \
+            https://github.com/2dust/AndroidLibXrayLite/releases/latest/download/libv2ray.aar
+          ls -la app/libs
+
       - name: Build debug APK
         run: |
           chmod +x ./gradlew || true
@@ -28,6 +35,8 @@ jobs:
       - name: Show errors
         if: failure()
         run: |
+          echo "--- assets of AndroidLibXrayLite latest release ---"
+          curl -s https://api.github.com/repos/2dust/AndroidLibXrayLite/releases/latest | grep -E '"(tag_name|name)"' | head -20 || true
           grep -E "^e: |^w: .*rror|error:|What went wrong" -A4 build.log | head -160 || true
 
       - uses: actions/upload-artifact@v4

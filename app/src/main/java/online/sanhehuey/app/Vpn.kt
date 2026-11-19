@@ -41,6 +41,7 @@ object Vpn {
     }
 
     fun isUp(ctx: Context): Boolean =
+        CdnVpnService.running ||
         try {
             backend(ctx).getState(tunnel) == Tunnel.State.UP
         } catch (e: Exception) {
@@ -54,7 +55,26 @@ object Vpn {
         backend(ctx).setState(tunnel, Tunnel.State.UP, cfg)
     }
 
+    /** CDN-ключ (VLESS+WS через Cloudflare): ждём, пока сервис поднимет ядро, или отдаём ошибку. */
+    fun connectCdn(ctx: Context, xrayConfig: String, smart: Boolean) {
+        CdnVpnService.lastError = null
+        ctx.startService(
+            android.content.Intent(ctx, CdnVpnService::class.java)
+                .putExtra(CdnVpnService.EXTRA_CONFIG, xrayConfig)
+                .putExtra(CdnVpnService.EXTRA_SMART, smart)
+        )
+        val end = System.currentTimeMillis() + 12_000L
+        while (System.currentTimeMillis() < end) {
+            if (CdnVpnService.running) return
+            CdnVpnService.lastError?.let { throw IllegalStateException(it) }
+            Thread.sleep(150)
+        }
+        CdnVpnService.stop()
+        throw IllegalStateException("VPN не запустился за 12 секунд")
+    }
+
     fun disconnect(ctx: Context) {
-        backend(ctx).setState(tunnel, Tunnel.State.DOWN, null)
+        if (CdnVpnService.running) CdnVpnService.stop()
+        runCatching { backend(ctx).setState(tunnel, Tunnel.State.DOWN, null) }
     }
 }

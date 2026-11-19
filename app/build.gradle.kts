@@ -12,8 +12,10 @@ android {
         applicationId = "online.sanhehuey.app"
         minSdk = 24
         targetSdk = 36
-        versionCode = 3
-        versionName = "2.1"
+        versionCode = 4
+        versionName = "2.2"
+        // ядро Xray весит много, поэтому только современные телефоны
+        ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
     }
 
     buildTypes {
@@ -44,6 +46,8 @@ android {
 
 dependencies {
     implementation("com.zaneschepke:amneziawg-android:2.3.7")
+    // Ядро Xray (VLESS/WebSocket для CDN-ключей); файл скачивает сборка, см. .github/workflows/build.yml
+    implementation(files("libs/libv2ray.aar"))
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("com.google.android.material:material:1.12.0")

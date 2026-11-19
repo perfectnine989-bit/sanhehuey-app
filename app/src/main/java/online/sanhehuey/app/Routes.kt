@@ -17,6 +17,11 @@ object Routes {
         return joined
     }
 
+    /** Сети «мир минус Россия» построчно — для CDN-режима (маршруты VpnService). */
+    fun cidrs(ctx: Context): List<String> =
+        ctx.assets.open("smart_routes.txt").bufferedReader().use { it.readText() }
+            .lines().map { it.trim() }.filter { it.isNotEmpty() }
+
     /**
      * Приложения, которые идут мимо туннеля (ExcludedApplications в секции [Interface]).
      * Если строка уже есть в конфиге — дополняем её, а не дублируем.

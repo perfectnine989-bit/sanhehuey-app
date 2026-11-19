@@ -53,6 +53,16 @@ object Store {
             .edit().putString("key_id", id).apply()
     }
 
+    /** Лучшие адреса Cloudflare с прошлого подключения — проверяются первыми. */
+    fun cdnNodes(ctx: Context): List<String> =
+        (ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE).getString("cdn_nodes", "") ?: "")
+            .split(",").filter { it.isNotBlank() }
+
+    fun saveCdnNodes(ctx: Context, nodes: List<String>) {
+        ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE)
+            .edit().putString("cdn_nodes", nodes.joinToString(",")).apply()
+    }
+
     fun clearToken(ctx: Context) {
         ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE)
             .edit().remove(KEY_TOKEN).remove("key_id").apply()
