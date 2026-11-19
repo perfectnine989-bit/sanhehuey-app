@@ -48,6 +48,14 @@ class CdnVpnService : VpnService() {
         return START_NOT_STICKY
     }
 
+    private fun xudpKey(id: String): String {
+        val h = java.security.MessageDigest.getInstance("SHA-256").digest(id.toByteArray())
+        return android.util.Base64.encodeToString(
+            h,
+            android.util.Base64.URL_SAFE or android.util.Base64.NO_PADDING or android.util.Base64.NO_WRAP
+        )
+    }
+
     private fun startCore(config: String, smart: Boolean) {
         try {
             lastError = null
@@ -80,7 +88,7 @@ class CdnVpnService : VpnService() {
             val pfd = b.establish() ?: throw IllegalStateException("Не удалось создать VPN-интерфейс")
             tun = pfd
 
-            Libv2ray.initCoreEnv(filesDir.absolutePath, Store.deviceId(this))
+            Libv2ray.initCoreEnv(filesDir.absolutePath, xudpKey(Store.deviceId(this)))
             val ctl = Libv2ray.newCoreController(handler)
             ctl.startLoop(config, pfd.fd)
             controller = ctl
