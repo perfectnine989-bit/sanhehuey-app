@@ -4,6 +4,10 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
+// Сборка «для команды»: gradlew assembleDebug -Pteam=true -PteamApi=... -PteamHost=... -PteamSecret=...
+val teamBuild = project.hasProperty("team")
+fun teamProp(name: String): String = (project.findProperty(name) as String?) ?: ""
+
 android {
     namespace = "online.sanhehuey.app"
     compileSdk = 36
@@ -12,8 +16,14 @@ android {
         applicationId = "online.sanhehuey.app"
         minSdk = 24
         targetSdk = 36
-        versionCode = 4
-        versionName = "2.2"
+        versionCode = 5
+        versionName = "2.3"
+        if (teamBuild) applicationId = "online.sanhehuey.team"
+        buildConfigField("boolean", "TEAM", teamBuild.toString())
+        buildConfigField("String", "TEAM_API", "\"" + teamProp("teamApi") + "\"")
+        buildConfigField("String", "TEAM_HOST", "\"" + teamProp("teamHost") + "\"")
+        buildConfigField("String", "TEAM_SECRET", "\"" + teamProp("teamSecret") + "\"")
+        manifestPlaceholders["appLabel"] = if (teamBuild) "SanHeHuey Team" else "СанХэХуэй"
         // ядро Xray весит много, поэтому только современные телефоны
         ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
     }
@@ -29,7 +39,10 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions { jvmTarget = "17" }
-    buildFeatures { compose = true }
+    buildFeatures {
+        compose = true
+        buildConfig = true
+    }
 
     packaging {
         resources {

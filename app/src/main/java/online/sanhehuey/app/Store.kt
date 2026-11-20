@@ -63,6 +63,14 @@ object Store {
             .edit().putString("cdn_nodes", nodes.joinToString(",")).apply()
     }
 
+    /** Последний ответ сервера для сборки «команда» — чтобы подключаться, даже если API недоступен. */
+    fun teamCdn(ctx: Context): String =
+        ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE).getString("team_cdn", "") ?: ""
+
+    fun saveTeamCdn(ctx: Context, json: String) {
+        ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE).edit().putString("team_cdn", json).apply()
+    }
+
     fun clearToken(ctx: Context) {
         ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE)
             .edit().remove(KEY_TOKEN).remove("key_id").apply()

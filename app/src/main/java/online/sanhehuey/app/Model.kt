@@ -69,11 +69,18 @@ class AppModel(private val ctx: Context, private val scope: CoroutineScope) {
             status = VpnStatus.On
             connectedAt = System.currentTimeMillis()
         }
-        if (Store.token(ctx).isBlank()) screen = Screen.Login else loadState()
+        if (BuildConfig.TEAM) {
+            screen = Screen.Main // без входа: сразу главный экран
+        } else if (Store.token(ctx).isBlank()) {
+            screen = Screen.Login
+        } else {
+            loadState()
+        }
         scope.launch { trafficLoop() }
     }
 
     fun refresh() {
+        if (BuildConfig.TEAM) return
         if (screen == Screen.Main || screen == Screen.Gate) loadState()
     }
 
@@ -401,6 +408,10 @@ class AppModel(private val ctx: Context, private val scope: CoroutineScope) {
         scope.launch {
             error = null
             status = VpnStatus.Connecting
+            if (BuildConfig.TEAM) {
+                connectTeam()
+                return@launch
+            }
             val key = if (keysSupported) Store.keyId(ctx) else ""
             val c = withContext(Dispatchers.IO) {
                 runCatching {
@@ -425,14 +436,59 @@ class AppModel(private val ctx: Context, private val scope: CoroutineScope) {
                 pendingCdn = null
                 pendingConfig = c.optString("config")
             }
-            val prepare = VpnService.prepare(ctx)
-            if (prepare != null) {
-                val ask = requestVpnPermission
-                if (ask != null) ask(prepare) else status = VpnStatus.Off
+            askVpnAndStart()
+        }
+    }
+
+    private fun askVpnAndStart() {
+        val prepare = VpnService.prepare(ctx)
+        if (prepare != null) {
+            val ask = requestVpnPermission
+            if (ask != null) ask(prepare) else status = VpnStatus.Off
+        } else {
+            startTunnel()
+        }
+    }
+
+    /**
+     * Сборка для команды: устройство регистрируется на сервере по общему ключу приложения
+     * (лимит устройств и отзыв доступа — на сервере). Если сервер недоступен, берём последний сохранённый ключ.
+     */
+    private suspend fun connectTeam() {
+        val r = withContext(Dispatchers.IO) {
+            runCatching { Api.teamConnect(BuildConfig.TEAM_SECRET, Store.deviceId(ctx), deviceName()) }.getOrNull()
+        }
+        var payload: JSONObject? = null
+        if (r != null) {
+            if (r.optBoolean("ok")) {
+                payload = r.optJSONObject("cdn")
+                Store.saveTeamCdn(ctx, payload?.toString().orEmpty())
             } else {
-                startTunnel()
+                val reason = r.optString("reason")
+                if (reason == "limit" || reason == "disabled" || reason == "bad_secret") {
+                    Store.saveTeamCdn(ctx, "")
+                    status = VpnStatus.Off
+                    error = when (reason) {
+                        "limit" -> "Достигнут лимит устройств. Напиши администратору."
+                        "disabled" -> "Доступ закрыт администратором."
+                        else -> "Это приложение больше не действует. Получи новую версию."
+                    }
+                    return
+                }
             }
         }
+        if (payload == null) {
+            val cached = Store.teamCdn(ctx)
+            if (cached.isNotBlank()) payload = runCatching { JSONObject(cached) }.getOrNull()
+        }
+        if (payload == null) {
+            status = VpnStatus.Off
+            error = "Нет связи с сервером"
+            return
+        }
+        pendingCdn = payload
+        pendingConfig = null
+        askVpnAndStart()
     }
 
     fun onVpnPermission(granted: Boolean) {

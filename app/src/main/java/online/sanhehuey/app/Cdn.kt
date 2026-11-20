@@ -35,7 +35,9 @@ object Cdn {
     fun parse(o: JSONObject?): Info? {
         if (o == null) return null
         val uuid = o.optString("uuid")
-        val host = o.optString("host")
+        // В сборке для команды домен зашит в приложение и важнее ответа сервера
+        val host = if (BuildConfig.TEAM && BuildConfig.TEAM_HOST.isNotBlank()) BuildConfig.TEAM_HOST
+        else o.optString("host")
         val path = o.optString("path")
         if (uuid.isBlank() || host.isBlank() || path.isBlank()) return null
         val nodes = mutableListOf<String>()
@@ -45,7 +47,7 @@ object Cdn {
         return Info(
             uuid = uuid,
             host = host,
-            sni = o.optString("sni").ifBlank { host },
+            sni = if (BuildConfig.TEAM && BuildConfig.TEAM_HOST.isNotBlank()) host else o.optString("sni").ifBlank { host },
             port = o.optInt("port", 443),
             path = path,
             fp = o.optString("fp").ifBlank { "chrome" },

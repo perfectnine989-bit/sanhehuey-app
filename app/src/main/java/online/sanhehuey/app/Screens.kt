@@ -329,7 +329,7 @@ private fun ProfileScreen(model: AppModel, palette: Palette, version: String) {
             Avatar(palette.glow)
             Spacer(Modifier.height(14.dp))
             T(
-                s?.optString("client_name").orEmpty().ifBlank { "BossTriad" },
+                s?.optString("client_name").orEmpty().ifBlank { if (BuildConfig.TEAM) "Команда" else "BossTriad" },
                 26, font = Th.hero, brush = Th.goldBrush, maxLines = 1
             )
         }
@@ -355,7 +355,7 @@ private fun ProfileScreen(model: AppModel, palette: Palette, version: String) {
             VpnStatus.Disconnecting -> "Отключение"
             VpnStatus.Off -> "Отключено"
         }
-        val connection = mutableListOf("Протокол" to (if (model.keyType == "cdn") "VLESS · CDN" else "AmneziaWG"), "Режим" to model.mode.title, "Статус" to statusText)
+        val connection = mutableListOf("Протокол" to (if (BuildConfig.TEAM || model.keyType == "cdn") "VLESS · CDN" else "AmneziaWG"), "Режим" to model.mode.title, "Статус" to statusText)
         val keyName = model.keys.firstOrNull { it.id == model.selectedKey }?.name.orEmpty()
         if (keyName.isNotBlank()) connection.add("Ключ" to keyName)
         val location = s?.optString("location").orEmpty()
@@ -379,9 +379,11 @@ private fun ProfileScreen(model: AppModel, palette: Palette, version: String) {
         GlassButton("Написать в поддержку", tint = Th.telegram.copy(alpha = 0.26f)) {
             model.open("https://t.me/S1llonGOD")
         }
-        T(
-            "Выйти из аккаунта", 14, color = Th.muted, align = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth().clickable { model.logout() }.padding(vertical = 10.dp)
-        )
+        if (!BuildConfig.TEAM) {
+            T(
+                "Выйти из аккаунта", 14, color = Th.muted, align = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth().clickable { model.logout() }.padding(vertical = 10.dp)
+            )
+        }
     }
 }

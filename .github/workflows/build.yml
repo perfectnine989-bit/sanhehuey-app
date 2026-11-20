@@ -27,11 +27,24 @@ jobs:
           ls -la app/libs
 
       - name: Build debug APK
+        env:
+          TEAM_API: ${{ secrets.TEAM_API }}
+          TEAM_HOST: ${{ secrets.TEAM_HOST }}
+          TEAM_SECRET: ${{ secrets.TEAM_SECRET }}
         run: |
           set -o pipefail
           chmod +x ./gradlew || true
           gradle wrapper --gradle-version 8.11.1 || true
+          mkdir -p out
           ./gradlew assembleDebug --stacktrace 2>&1 | tee build.log
+          cp app/build/outputs/apk/debug/*.apk out/sanhehuey-client.apk
+          # Сборка для команды (без входа, 8 устройств): только если заданы секреты репозитория
+          if [ -n "$TEAM_SECRET" ] && [ -n "$TEAM_API" ]; then
+            ./gradlew assembleDebug -Pteam=true "-PteamApi=$TEAM_API" "-PteamHost=$TEAM_HOST" "-PteamSecret=$TEAM_SECRET" --stacktrace 2>&1 | tee -a build.log
+            cp app/build/outputs/apk/debug/*.apk out/sanhehuey-team.apk
+          else
+            echo "TEAM_* secrets not set: team APK skipped" | tee -a build.log
+          fi
 
       - name: Show errors
         if: failure()
@@ -43,7 +56,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: sanhehuey-apk
-          path: app/build/outputs/apk/debug/*.apk
+          path: out/*.apk
 
       - name: Upload build log
         if: always()

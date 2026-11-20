@@ -8,7 +8,10 @@ import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
 object Api {
-    private const val BASE = "https://sanhehuey.online"
+    // В сборке для команды адрес сервера зашит при сборке (домен), чтобы при бане менять только DNS
+    private val BASE: String =
+        if (BuildConfig.TEAM && BuildConfig.TEAM_API.isNotBlank()) BuildConfig.TEAM_API.trimEnd('/')
+        else "https://sanhehuey.online"
 
     private val http = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
@@ -31,6 +34,19 @@ object Api {
         http.newCall(req).execute().use { r ->
             val body = r.body?.string().orEmpty()
             return if (body.isBlank()) JSONObject() else JSONObject(body)
+        }
+    }
+
+    /** Сборка для команды: без входа, регистрация устройства по общему ключу приложения. */
+    fun teamConnect(secret: String, device: String, name: String): JSONObject {
+        val json = JSONObject().put("secret", secret).put("device", device).put("name", name)
+        val req = Request.Builder()
+            .url(BASE + "/api/team/connect")
+            .post(json.toString().toRequestBody("application/json".toMediaType()))
+            .build()
+        http.newCall(req).execute().use { r ->
+            val t = r.body?.string().orEmpty()
+            return if (t.isBlank()) JSONObject() else JSONObject(t)
         }
     }
 
