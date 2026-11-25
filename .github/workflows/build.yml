@@ -333,13 +333,13 @@ jobs:
                       .sortedBy { it.second }
               }
 
-              fun xrayConfig(info: Info, node: String): String {
+              fun xrayConfig(info: Info, node: String, mtu: Int = 1280): String {
                   val tun = JSONObject()
                       .put("tag", "tun-in")
                       .put("protocol", "tun")
                       .put(
                           "settings",
-                          JSONObject().put("name", "xray0").put("mtu", 1400).put("userLevel", 0)
+                          JSONObject().put("name", "xray0").put("mtu", mtu).put("userLevel", 0)
                       )
 
                   val user = JSONObject().put("id", info.uuid).put("encryption", "none").put("level", 0)
@@ -363,6 +363,13 @@ jobs:
                               .put("path", info.path)
                               .put("host", info.host)
                               .put("headers", JSONObject().put("Host", info.host))
+                      )
+                      .put(
+                          "sockopt",
+                          JSONObject()
+                              .put("tcpKeepAliveInterval", 15)
+                              .put("tcpKeepAliveIdle", 30)
+                              .put("tcpNoDelay", true)
                       )
                   val proxy = JSONObject()
                       .put("tag", "proxy")
@@ -389,13 +396,19 @@ jobs:
           import android.app.PendingIntent
           import android.content.Intent
           import android.content.pm.ServiceInfo
+          import android.net.ConnectivityManager
+          import android.net.Network
+          import android.net.NetworkCapabilities
+          import android.net.NetworkRequest
           import android.net.VpnService
           import android.os.Build
           import android.os.ParcelFileDescriptor
           import androidx.core.app.NotificationCompat
+          import kotlinx.coroutines.runBlocking
           import libv2ray.CoreCallbackHandler
           import libv2ray.CoreController
           import libv2ray.Libv2ray
+          import org.json.JSONObject
           import java.util.concurrent.Executors
 
           class CdnVpnService : VpnService() {
@@ -404,10 +417,13 @@ jobs:
                   const val EXTRA_CONFIG = "xray_config"
                   const val EXTRA_SMART = "smart"
                   const val EXTRA_NODE = "cdn_node"
+                  const val EXTRA_CDN_JSON = "cdn_json"
+                  const val EXTRA_MTU = "vpn_mtu"
                   private const val CHANNEL_ID = "sanhehuey_vpn"
                   private const val NOTIF_ID = 1001
 
                   @Volatile var running = false
+                  @Volatile var switching = false
                   @Volatile var lastError: String? = null
                   @Volatile var connectedAt: Long = 0L
                   @Volatile var activeNode: String? = null
@@ -421,6 +437,13 @@ jobs:
               private val executor = Executors.newSingleThreadExecutor()
               private var tun: ParcelFileDescriptor? = null
               private var controller: CoreController? = null
+
+              @Volatile private var savedCdnJson: String? = null
+              @Volatile private var savedSmart: Boolean = true
+              private var netCallback: ConnectivityManager.NetworkCallback? = null
+              @Volatile private var lastNetHandle: Long = 0L
+              @Volatile private var lastCellular: Boolean? = null
+              @Volatile private var lastSwitchAt: Long = 0L
 
               private val handler = object : CoreCallbackHandler {
                   override fun startup(): Long = 0L
@@ -439,8 +462,18 @@ jobs:
 
                   val smart = intent.getBooleanExtra(EXTRA_SMART, true)
                   val node = intent.getStringExtra(EXTRA_NODE)
+                  val cdnJson = intent.getStringExtra(EXTRA_CDN_JSON)
+                  val mtu = intent.getIntExtra(EXTRA_MTU, Vpn.optimalMtu(this))
+
+                  savedSmart = smart
+                  savedCdnJson = cdnJson?.takeIf { it.isNotBlank() }
+                  lastNetHandle = 0L
+                  lastCellular = null
                   instance = this
-                  executor.execute { startCore(config, smart, node) }
+
+                  executor.execute {
+                      startCore(config, smart, node, mtu, isReconnect = false)
+                  }
                   return START_NOT_STICKY
               }
 
@@ -482,14 +515,15 @@ jobs:
                   }
               }
 
-              private fun startCore(config: String, smart: Boolean, node: String?) {
+              private fun startCore(config: String, smart: Boolean, node: String?, mtu: Int, isReconnect: Boolean) {
                   try {
+                      val prevConnectedAt = if (isReconnect && connectedAt > 0L) connectedAt else 0L
                       closeCoreOnly()
                       lastError = null
 
                       val b = Builder()
                           .setSession("SanHeHuey")
-                          .setMtu(1400)
+                          .setMtu(mtu)
                           .addAddress("172.19.0.1", 30)
                           .addDnsServer("1.1.1.1")
                           .addDnsServer("8.8.8.8")
@@ -513,18 +547,103 @@ jobs:
 
                       val pfd = b.establish() ?: throw IllegalStateException("Не удалось создать VPN-интерфейс")
                       tun = pfd
+                      runCatching { setUnderlyingNetworks(null) }
 
                       Libv2ray.initCoreEnv(filesDir.absolutePath, "")
                       val ctl = Libv2ray.newCoreController(handler)
                       ctl.startLoop(config, pfd.fd)
                       controller = ctl
                       activeNode = node?.takeIf { it.isNotBlank() }
-                      connectedAt = System.currentTimeMillis()
+                      connectedAt = if (prevConnectedAt > 0L) prevConnectedAt else System.currentTimeMillis()
                       running = true
+
+                      if (netCallback == null && !savedCdnJson.isNullOrBlank()) {
+                          registerNetworkMonitor()
+                      }
                   } catch (e: Throwable) {
                       android.util.Log.e("SanHeHuey", "cdn start failed", e)
                       lastError = (e::class.java.simpleName + ": " + (e.message ?: "нет деталей")).take(300)
                       stopAll()
+                  }
+              }
+
+              private fun registerNetworkMonitor() {
+                  val cm = getSystemService(ConnectivityManager::class.java) ?: return
+                  val req = NetworkRequest.Builder()
+                      .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                      .addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN)
+                      .build()
+                  val cb = object : ConnectivityManager.NetworkCallback() {
+                      override fun onAvailable(network: Network) {
+                          handleNetworkChange(network)
+                      }
+
+                      override fun onCapabilitiesChanged(network: Network, caps: NetworkCapabilities) {
+                          if (caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)) {
+                              handleNetworkChange(network)
+                          }
+                      }
+                  }
+                  runCatching {
+                      cm.registerNetworkCallback(req, cb)
+                      netCallback = cb
+                  }
+              }
+
+              private fun unregisterNetworkMonitor() {
+                  val cb = netCallback ?: return
+                  netCallback = null
+                  runCatching {
+                      getSystemService(ConnectivityManager::class.java)?.unregisterNetworkCallback(cb)
+                  }
+              }
+
+              private fun handleNetworkChange(network: Network) {
+                  if (!running || savedCdnJson.isNullOrBlank()) return
+                  val cm = getSystemService(ConnectivityManager::class.java) ?: return
+                  val caps = cm.getNetworkCapabilities(network) ?: return
+                  if (!caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN)) return
+
+                  val handle = network.networkHandle
+                  val isCell = !(caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
+                      caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET))
+
+                  if (lastNetHandle == 0L) {
+                      lastNetHandle = handle
+                      lastCellular = isCell
+                      return
+                  }
+                  if (handle == lastNetHandle && isCell == lastCellular) return
+
+                  val now = System.currentTimeMillis()
+                  if (now - lastSwitchAt < 3500L) return
+                  lastNetHandle = handle
+                  lastCellular = isCell
+                  lastSwitchAt = now
+
+                  executor.execute { reconnectOnNewNetwork(isCell) }
+              }
+
+              private fun reconnectOnNewNetwork(isCell: Boolean) {
+                  val rawJson = savedCdnJson ?: return
+                  if (!running) return
+                  switching = true
+                  try {
+                      Thread.sleep(1200)
+                      if (!running || savedCdnJson.isNullOrBlank()) return
+                      val info = Cdn.parse(JSONObject(rawJson)) ?: return
+                      val mtu = if (isCell) 1280 else 1400
+                      val ranked = runBlocking { Cdn.rank(info, Store.cdnNodes(this@CdnVpnService)) }
+                      val bestNode = ranked.firstOrNull()?.first ?: activeNode ?: info.host
+                      if (ranked.isNotEmpty()) {
+                          Store.saveCdnNodes(this@CdnVpnService, ranked.take(3).map { it.first })
+                      }
+                      val newConfig = Cdn.xrayConfig(info, bestNode, mtu)
+                      startCore(newConfig, savedSmart, bestNode, mtu, isReconnect = true)
+                  } catch (e: Throwable) {
+                      android.util.Log.e("SanHeHuey", "auto-reconnect failed", e)
+                  } finally {
+                      switching = false
                   }
               }
 
@@ -539,6 +658,9 @@ jobs:
               }
 
               fun stopAll() {
+                  savedCdnJson = null
+                  switching = false
+                  unregisterNetworkMonitor()
                   closeCoreOnly()
                   if (instance === this) instance = null
                   if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
@@ -555,6 +677,9 @@ jobs:
               }
 
               override fun onDestroy() {
+                  savedCdnJson = null
+                  switching = false
+                  unregisterNetworkMonitor()
                   closeCoreOnly()
                   executor.shutdownNow()
                   if (instance === this) instance = null
@@ -568,6 +693,8 @@ jobs:
 
           import android.content.Context
           import android.content.Intent
+          import android.net.ConnectivityManager
+          import android.net.NetworkCapabilities
           import androidx.core.content.ContextCompat
           import org.amnezia.awg.backend.GoBackend
           import org.amnezia.awg.backend.Tunnel
@@ -607,8 +734,36 @@ jobs:
                   return backend!!
               }
 
+              fun isCellularNetwork(ctx: Context): Boolean {
+                  val cm = ctx.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return true
+                  val activeCaps = cm.getNetworkCapabilities(cm.activeNetwork)
+                  if (activeCaps != null && activeCaps.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN)) {
+                      val isWifi = activeCaps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
+                          activeCaps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
+                      return !isWifi
+                  }
+                  @Suppress("DEPRECATION")
+                  val nets = cm.allNetworks
+                  var hasWifi = false
+                  var hasCell = false
+                  for (n in nets) {
+                      val c = cm.getNetworkCapabilities(n) ?: continue
+                      if (!c.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)) continue
+                      if (!c.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN)) continue
+                      if (c.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
+                          c.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)) hasWifi = true
+                      if (c.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) hasCell = true
+                  }
+                  if (hasWifi) return false
+                  if (hasCell) return true
+                  return true
+              }
+
+              fun optimalMtu(ctx: Context): Int = if (isCellularNetwork(ctx)) 1280 else 1400
+
               fun isUp(ctx: Context): Boolean =
                   CdnVpnService.running ||
+                  CdnVpnService.switching ||
                   try {
                       backend(ctx).getState(tunnel) == Tunnel.State.UP
                   } catch (e: Exception) {
@@ -622,7 +777,14 @@ jobs:
                   backend(ctx).setState(tunnel, Tunnel.State.UP, cfg)
               }
 
-              fun connectCdn(ctx: Context, xrayConfig: String, smart: Boolean, node: String = "") {
+              fun connectCdn(
+                  ctx: Context,
+                  xrayConfig: String,
+                  smart: Boolean,
+                  node: String = "",
+                  cdnJson: String = "",
+                  mtu: Int = optimalMtu(ctx)
+              ) {
                   CdnVpnService.lastError = null
                   ContextCompat.startForegroundService(
                       ctx,
@@ -630,6 +792,8 @@ jobs:
                           .putExtra(CdnVpnService.EXTRA_CONFIG, xrayConfig)
                           .putExtra(CdnVpnService.EXTRA_SMART, smart)
                           .putExtra(CdnVpnService.EXTRA_NODE, node)
+                          .putExtra(CdnVpnService.EXTRA_CDN_JSON, cdnJson)
+                          .putExtra(CdnVpnService.EXTRA_MTU, mtu)
                   )
                   val end = System.currentTimeMillis() + 12_000L
                   while (System.currentTimeMillis() < end) {
@@ -642,7 +806,7 @@ jobs:
               }
 
               fun disconnect(ctx: Context) {
-                  if (CdnVpnService.running) CdnVpnService.stop()
+                  if (CdnVpnService.running || CdnVpnService.switching) CdnVpnService.stop()
                   runCatching { backend(ctx).setState(tunnel, Tunnel.State.DOWN, null) }
               }
           }
@@ -1095,9 +1259,11 @@ jobs:
                                   if (ranked.isEmpty()) throw IllegalStateException("Ни один адрес Cloudflare не отвечает. Проверь интернет.")
                                   var started: String? = null
                                   var lastFail: Throwable? = null
+                                  val mtu = Vpn.optimalMtu(ctx)
+                                  val rawCdnJson = cdn.toString()
                                   for ((node, _) in ranked.take(3)) {
                                       try {
-                                          Vpn.connectCdn(ctx, Cdn.xrayConfig(info, node), mode == Mode.Smart, node)
+                                          Vpn.connectCdn(ctx, Cdn.xrayConfig(info, node, mtu), mode == Mode.Smart, node, rawCdnJson, mtu)
                                           started = node
                                           break
                                       } catch (e: Throwable) {
